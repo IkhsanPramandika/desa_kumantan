@@ -1,0 +1,34 @@
+/* Default: tampilkan teks panjang, sembunyikan pendek */
+.full-text {
+    display: block;
+}
+.short-text {
+    display: none;
+}
+
+/* Saat sidebar di-collapse menggunakan class .toggled di sidebar */
+.sidebar.toggled .full-text,
+body.sidebar-toggled .sidebar .full-text {
+    display: none !important;
+}
+.sidebar.toggled .short-text,
+body.sidebar-toggled .sidebar .short-text {
+    display: block !important;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+.collapse-inner a.collapse-item {
+    white-space: normal !important;
+    line-height: 1.3;
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+.collapse-item {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 200px;   
+}
