@@ -26,57 +26,77 @@
     </div>
 
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
-            aria-expanded="true" aria-controls="collapsePages">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePengajuanSurat"
+            aria-expanded="true" aria-controls="collapsePengajuanSurat">
             <i class="fas fa-fw fa-folder"></i>
             <span>Pengajuan Surat</span>
         </a>
-        <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+        {{-- ID diubah menjadi collapsePengajuanSurat --}}
+        <div id="collapsePengajuanSurat" class="collapse" aria-labelledby="headingPengajuanSurat" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
                 <h6 class="collapse-header">Kartu Keluarga:</h6>
-                {{-- Penerbitan Kartu Keluarga Baru --}}
-                <a class="collapse-item" href="{{ route('permohonan-kk.index') }}">Penerbitan Kartu Keluarga Baru</a>
-                {{-- Kartu Keluarga Perubahan Data --}}
-                <a class="collapse-item" href="{{ route('permohonan-kk-perubahan.index') }}">Kartu Keluarga Perubahan Data</a>
-                {{-- Penerbitan Kartu Keluarga Hilang --}}
-                <a class="collapse-item" href="{{ route('permohonan-kk-hilang.index') }}">Penerbitan Kartu Keluarga Hilang</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-kk-baru.index') }}">Permohonan Kartu Keluarga Baru</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-kk-perubahan.index') }}">Kartu Keluarga Perubahan Data</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-kk-hilang.index') }}">Penerbitan Kartu Keluarga Hilang</a>
 
                 <div class="collapse-divider"></div>
 
                 <h6 class="collapse-header">Surat Keterangan:</h6>
-                {{-- Surat Keterangan Kelahiran & Proses Akta Kelahiran --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-kelahiran.index') }}">Surat Keterangan Kelahiran & Proses Akta Kelahiran</a>
-                {{-- Surat Keterangan Ahli Waris --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-ahli-waris.index') }}">Surat Keterangan Ahli Waris</a>
-                {{-- Surat Pengantar Nikah --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-perkawinan.index') }}">Surat Pengantar Nikah</a>
-                {{-- Surat Keterangan Usaha --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-usaha.index') }}">Surat Keterangan Usaha</a>
-                {{-- Surat Keterangan Domisili --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-domisili.index') }}">Surat Keterangan Domisili</a>
-                {{-- Surat Keterangan Tidak Mampu --}}
-                <a class="collapse-item" href="{{ route('permohonan-sk-tidak-mampu.index') }}">Surat Keterangan Tidak Mampu</a>
-                {{-- Surat Keterangan Kematian (jika ada) --}}
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-kelahiran.index') }}">Surat Keterangan Kelahiran & Proses Akta Kelahiran</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-ahli-waris.index') }}">Surat Keterangan Ahli Waris</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-perkawinan.index') }}">Surat Pengantar Nikah</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-usaha.index') }}">Surat Keterangan Usaha</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-domisili.index') }}">Surat Keterangan Domisili</a>
+                <a class="collapse-item" href="{{ route('petugas.permohonan-sk-tidak-mampu.index') }}">Surat Keterangan Tidak Mampu</a>
                 {{-- <a class="collapse-item" href="{{ route('permohonan-sk-kematian.index') }}">Surat Keterangan Kematian</a> --}}
             </div>
         </div>
     </li>
 
+
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
-            aria-expanded="true" aria-controls="collapseUtilities">
-            <i class="fas fa-fw fa-wrench"></i>
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePengumumanDesa"
+            aria-expanded="true" aria-controls="collapsePengumumanDesa">
+            <i class="fas fa-fw fa-bullhorn"></i> {{-- Mengganti ikon agar berbeda --}}
             <span>Pengumuman Desa</span>
         </a>
-        {{-- Jika ada sub-menu untuk Pengumuman Desa, tambahkan di sini --}}
-        {{-- <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
-            data-parent="#accordionSidebar">
+        {{-- ID diubah menjadi collapsePengumumanDesa --}}
+        <div id="collapsePengumumanDesa" class="collapse" aria-labelledby="headingPengumumanDesa" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <h6 class="collapse-header">Custom Utilities:</h6>
-                <a class="collapse-item" href="utilities-color.html">Colors</a>
+                <h6 class="collapse-header">Pengumuman Desa:</h6>
+                <a class="collapse-item" href="{{ route('petugas.pengumuman.index') }}">Kelola Pengumuman</a>
+                <a class="collapse-item" href="{{ route('petugas.pengumuman.create') }}">Tambah Pengumuman</a>
+                {{-- Tambahkan link lain terkait pengumuman jika ada --}}
             </div>
-        </div> --}}
+        </div>
     </li>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-heading">
+        Akun Masyarakat Desa Kumantan
+    </div>
+
+     <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseManajemenMasyarakat"
+            aria-expanded="true" aria-controls="collapseManajemenMasyarakat">
+            <i class="fas fa-fw fa-users-cog"></i> {{-- Ikon baru untuk manajemen pengguna --}}
+            <span>Manajemen Warga</span> {{-- Teks yang lebih menarik --}}
+        </a>
+        <div id="collapseManajemenMasyarakat" class="collapse" aria-labelledby="headingManajemenMasyarakat" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <h6 class="collapse-header">Kelola Akun Warga:</h6>
+                <a class="collapse-item" href="{{ route('petugas.masyarakat.index') }}">Daftar Akun Warga</a>
+                {{-- Jika Anda ingin menambahkan link langsung ke form pembuatan akun masyarakat oleh petugas --}}
+                {{-- <a class="collapse-item" href="{{ route('petugas.masyarakat.create') }}">Tambah Akun Warga Baru</a> --}}
+                {{-- Link untuk reset password biasanya tidak diletakkan di menu utama, 
+                    tapi diakses dari daftar akun warga per individu --}}
+            </div>
+         </div>
+    </li>
+ 
+
+    
 
     <hr class="sidebar-divider d-none d-md-block">
 

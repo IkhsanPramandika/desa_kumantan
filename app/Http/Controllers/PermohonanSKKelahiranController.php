@@ -2,218 +2,146 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PermohonananSKKelahiran; // Pastikan nama model sesuai
+use App\Models\PermohonananSKKelahiran;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage; // Tambahkan ini
-use Illuminate\Support\Facades\Validator; // Tambahkan ini
-use Carbon\Carbon; // Tambahkan ini untuk timestamp
-use PDF; // Tambahkan ini untuk Dompdf
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PermohonanSKKelahiranController extends Controller
 {
     /**
-     * Menampilkan daftar permohonan SK Kelahiran.
+     * Menampilkan daftar permohonan.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data = PermohonananSKKelahiran::all();
+        $query = PermohonananSKKelahiran::with('masyarakat')->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama_anak', 'like', "%{$search}%")
+                  ->orWhere('nama_ayah', 'like', "%{$search}%")
+                  ->orWhere('nama_ibu', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $data = $query->paginate(10)->withQueryString();
+        
         return view('petugas.pengajuan.sk_kelahiran.index', compact('data'));
     }
 
     /**
-     * Menampilkan formulir untuk membuat permohonan SK Kelahiran (oleh masyarakat).
+     * Menampilkan halaman detail.
      */
-    public function create()
+    public function show($id)
     {
-        return view('petugas.pengajuan.sk_kelahiran.create');
+        $permohonan = PermohonananSKKelahiran::findOrFail($id);
+        return view('petugas.pengajuan.sk_kelahiran.show', compact('permohonan'));
     }
 
     /**
-     * Menyimpan permohonan SK Kelahiran yang baru dibuat ke database (oleh masyarakat).
-     */
-    public function store(Request $request)
-    {
-        // 1. Validasi Input dari Masyarakat (hanya upload dokumen)
-        $validator = Validator::make($request->all(), [
-            'file_kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'file_ktp' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'surat_pengantar_rt_rw' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'surat_nikah_orangtua' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'surat_keterangan_kelahiran' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'catatan' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-
-        // 2. Proses Upload File
-        $uploadedFilePaths = [];
-        $fileFields = [
-            'file_kk',
-            'file_ktp',
-            'surat_pengantar_rt_rw',
-            'surat_nikah_orangtua',
-            'surat_keterangan_kelahiran',
-        ];
-
-        foreach ($fileFields as $field) {
-            if ($request->hasFile($field)) {
-                $filePath = $request->file($field)->store('permohonan_sk_kelahiran', 'public'); // Simpan di storage/app/public/permohonan_sk_kelahiran
-                $uploadedFilePaths[$field] = $filePath;
-            } else {
-                $uploadedFilePaths[$field] = null;
-            }
-        }
-
-        // 3. Simpan Data ke Database
-        try {
-            PermohonananSKKelahiran::create([
-                'file_kk' => $uploadedFilePaths['file_kk'],
-                'file_ktp' => $uploadedFilePaths['file_ktp'],
-                'surat_pengantar_rt_rw' => $uploadedFilePaths['surat_pengantar_rt_rw'],
-                'surat_nikah_orangtua' => $uploadedFilePaths['surat_nikah_orangtua'],
-                'surat_keterangan_kelahiran' => $uploadedFilePaths['surat_keterangan_kelahiran'],
-                'catatan' => $request->input('catatan'),
-                'status' => 'pending', // Status awal selalu 'pending'
-            ]);
-
-            return redirect()->route('permohonan-sk-kelahiran.index')->with('success', 'Permohonan Surat Keterangan Kelahiran berhasil diajukan. Menunggu verifikasi petugas.');
-        } catch (\Exception $e) {
-            foreach ($uploadedFilePaths as $path) {
-                if ($path) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan permohonan: ' . $e->getMessage())->withInput();
-        }
-    }
-
-    /**
-     * Memverifikasi permohonan SK Kelahiran (oleh petugas).
-     * Status diubah menjadi 'diterima', lalu petugas diarahkan ke form input data.
+     * Memverifikasi permohonan, mengubah status menjadi 'diterima'.
+     * Pada alur ini, setelah verifikasi, petugas bisa langsung membuat surat.
      */
     public function verifikasi($id)
     {
         $permohonan = PermohonananSKKelahiran::findOrFail($id);
-        $permohonan->status = 'diterima'; // Mengubah status menjadi 'diterima'
-        $permohonan->save();
-
-        // Setelah diverifikasi, petugas akan diarahkan ke form pengisian data rinci
-        return redirect()->route('permohonan-sk-kelahiran.input-data', $permohonan->id)->with('success', 'Permohonan berhasil diverifikasi. Silakan lengkapi data anak dan orang tua.');
-    }
-
-    /**
-     * Menampilkan form untuk input data rinci oleh petugas.
-     */
-    public function inputData($id)
-    {
-        $permohonan = PermohonananSKKelahiran::findOrFail($id);
-        // Pastikan permohonan sudah diterima atau diproses sebelum bisa diinput datanya
-        if ($permohonan->status !== 'diterima' && $permohonan->status !== 'diproses') {
-            return redirect()->route('permohonan-sk-kelahiran.index')->with('error', 'Permohonan belum diverifikasi atau sudah selesai.');
+        if ($permohonan->status !== 'pending') {
+            return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('error', 'Hanya permohonan dengan status "pending" yang bisa diverifikasi.');
         }
-        return view('petugas.pengajuan.sk_kelahiran.input_data', compact('permohonan'));
+        $permohonan->status = 'diterima'; // Status diubah menjadi 'diterima', siap untuk dibuatkan surat.
+        $permohonan->save();
+
+        return redirect()->route('petugas.permohonan-sk-kelahiran.show', $permohonan->id)
+            ->with('success', 'Permohonan berhasil diverifikasi! Anda sekarang dapat membuat surat.');
     }
 
     /**
-     * Menyimpan data rinci yang diinput petugas dan generate PDF Surat Keterangan Kelahiran.
+     * Hapus method inputData() karena tidak diperlukan lagi dalam alur ini.
+     * Petugas tidak menginput data, hanya men-trigger pembuatan PDF.
      */
-    public function storeDataAndGeneratePdf(Request $request, $id)
+    // public function inputData($id) { ... } // Method ini bisa dihapus
+
+    /**
+     * PERBAIKAN: Method ini sekarang TIDAK lagi memvalidasi atau menerima input dari petugas.
+     * Ia hanya akan mengambil data yang sudah ada dari masyarakat dan membuat PDF.
+     */
+    public function selesaikan(Request $request, $id)
     {
         $permohonan = PermohonananSKKelahiran::findOrFail($id);
 
-        // Validasi data yang diinput petugas
-        $request->validate([
-            'nama_anak' => 'required|string|max:255',
-            'tempat_lahir_anak' => 'required|string|max:255',
-            'tanggal_lahir_anak' => 'required|date',
-            'jenis_kelamin_anak' => 'required|in:Laki-laki,Perempuan',
-            'agama_anak' => 'required|string|max:255',
-            'alamat_anak' => 'required|string|max:500',
-            'nama_ayah' => 'required|string|max:255',
-            'nik_ayah' => 'nullable|string|max:16',
-            'nama_ibu' => 'required|string|max:255',
-            'nik_ibu' => 'nullable|string|max:16',
-            'no_buku_nikah' => 'nullable|string|max:255',
-        ]);
+        // Hanya izinkan pembuatan surat jika status sudah 'diterima'
+        if ($permohonan->status !== 'diterima') {
+            return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('error', 'Surat hanya bisa dibuat untuk permohonan yang sudah diverifikasi (status: diterima).');
+        }
 
-        // Update data permohonan dengan input dari petugas
-        $permohonan->fill($request->only([
-            'nama_anak', 'tempat_lahir_anak', 'tanggal_lahir_anak', 'jenis_kelamin_anak',
-            'agama_anak', 'alamat_anak', 'nama_ayah', 'nik_ayah', 'nama_ibu', 'nik_ibu', 'no_buku_nikah'
-        ]));
-        $permohonan->status = 'diproses'; // Status berubah menjadi diproses setelah data diinput
-        $permohonan->save();
-
-        // --- Logika Generate PDF Surat Keterangan Kelahiran ---
         try {
-            // Generate nomor surat
-            // Anda bisa menyimpan nomor surat ini di kolom permohonan jika ada, misal: $permohonan->nomor_surat = $nomorSurat;
-            $nomorSurat = '01/SKK/DS/SM/' . Carbon::now()->format('m/Y'); // Sesuaikan format nomor surat Anda
-
-            // Data yang akan dilewatkan ke view PDF
-            $dataForPdf = [
-                'permohonan' => $permohonan,
-                'nomor_surat' => $nomorSurat,
-                // Anda bisa menambahkan data kepala desa, dll. di sini jika tidak statis di template
-            ];
-
-            $pdf = PDF::loadView('documents.sk_kelahiran', $dataForPdf);
-
-            // Tentukan path penyimpanan
-            $fileName = 'SK_Kelahiran_' . \Illuminate\Support\Str::slug($permohonan->nama_anak ?? 'anak') . '_' . $id . '.pdf';
-            $filePath = 'public/dokumen_hasil_sk_kelahiran/' . $fileName;
-
-            // Simpan PDF ke storage
-            Storage::put($filePath, $pdf->output());
-
-            // Update status permohonan dan path file hasil akhir
-            $permohonan->file_hasil_akhir = Storage::url($filePath);
-            $permohonan->status = 'selesai'; // Status berubah menjadi selesai setelah PDF digenerate
+            // TIDAK ADA LAGI ->fill($request->all())
+            // Langsung update status dan tanggal
+            $permohonan->status = 'selesai';
             $permohonan->tanggal_selesai_proses = Carbon::now();
+
+            // Generate nomor surat jika belum ada
+            if (is_null($permohonan->nomor_surat)) {
+                $currentYear = now()->year;
+                $lastNomorUrut = PermohonananSKKelahiran::whereYear('tanggal_selesai_proses', $currentYear)->max('nomor_urut') ?? 0;
+                $permohonan->nomor_urut = $lastNomorUrut + 1;
+                $formattedNomorUrut = str_pad($permohonan->nomor_urut, 3, '0', STR_PAD_LEFT);
+                $permohonan->nomor_surat = "472.1/{$formattedNomorUrut}/SKK-KMT/" . $this->getRomanMonth(now()->month) . "/" . $currentYear;
+            }
+
+            // Generate PDF dari data yang SUDAH ADA di $permohonan
+            $pdf = Pdf::loadView('documents.sk_kelahiran', ['permohonan' => $permohonan]);
+            
+            $fileName = 'SK_Kelahiran_' . Str::slug($permohonan->nama_anak) . '_' . $permohonan->id . '.pdf';
+            $path = 'permohonan_sk_kelahiran/hasil_akhir/' . $fileName;
+            Storage::disk('public')->put($path, $pdf->output());
+            
+            $permohonan->file_hasil_akhir = $path;
             $permohonan->save();
 
-            return redirect()->route('permohonan-sk-kelahiran.index')->with('success', 'Data berhasil disimpan dan Surat Keterangan Kelahiran berhasil dibuat.');
+            return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('success', 'Surat Keterangan Kelahiran berhasil dibuat dan disimpan.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat membuat PDF: ' . $e->getMessage())->withInput();
+            Log::error('[Selesaikan SK Kelahiran] Gagal untuk ID: ' . $id . ' - ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses atau membuat PDF: ' . $e->getMessage());
         }
     }
 
-
     /**
-     * Menolak permohonan SK Kelahiran dan menyimpan catatan penolakan.
+     * Menolak permohonan.
      */
     public function tolak(Request $request, $id)
     {
+        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
         $permohonan = PermohonananSKKelahiran::findOrFail($id);
-
-        // Validasi catatan penolakan
-        $request->validate([
-            'catatan_penolakan' => 'required|string|max:500', // Catatan tidak boleh kosong, max 500 karakter
-        ]);
-
-        $permohonan->status = 'ditolak'; // Mengubah status menjadi 'ditolak'
-        $permohonan->catatan_penolakan = $request->input('catatan_penolakan'); // Menyimpan catatan penolakan
+        $permohonan->status = 'ditolak';
+        $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
-
-        return redirect()->back()->with('error', 'Permohonan berhasil ditolak dengan catatan.');
+        return redirect()->route('petugas.permohonan-sk-kelahiran.index')->with('success', 'Permohonan berhasil ditolak.');
     }
 
     /**
-     * Mengunduh dokumen hasil akhir.
+     * Mengunduh file hasil akhir.
      */
-    public function downloadFinal(Request $request, $id)
+    public function downloadFinal($id)
     {
         $permohonan = PermohonananSKKelahiran::findOrFail($id);
-
-        if ($permohonan->file_hasil_akhir) {
-            $filePath = str_replace('/storage/', '', $permohonan->file_hasil_akhir);
-            if (Storage::disk('public')->exists($filePath)) {
-                return Storage::disk('public')->download($filePath);
-            }
+        if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
+            return Storage::disk('public')->download($permohonan->file_hasil_akhir);
         }
+        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan.');
+    }
 
-        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan atau tidak dapat diunduh.');
+    private function getRomanMonth($monthNumber)
+    {
+        $map = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        return $map[intval($monthNumber) - 1] ?? $monthNumber;
     }
 }

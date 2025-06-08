@@ -14,8 +14,8 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'guard' => env('AUTH_GUARD', 'web'), // Default guard untuk web (petugas)
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'), // Default password broker untuk petugas
     ],
 
     /*
@@ -31,15 +31,30 @@ return [
     | users are actually retrieved out of your database or other storage
     | system used by the application. Typically, Eloquent is utilized.
     |
-    | Supported: "session"
+    | Supported: "session", "sanctum" (atau "token" untuk Passport)
     |
     */
 
     'guards' => [
-        'web' => [
+        'web' => [ // Guard untuk petugas desa (login via web session)
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'users', // Menggunakan provider 'users'
         ],
+
+        'sanctum' => [ // Guard untuk API (misalnya untuk aplikasi mobile Flutter)
+            'driver' => 'sanctum',
+            'provider' => 'masyarakat_auth', // Menggunakan provider 'masyarakat_auth' untuk API masyarakat
+                                        // Jika API juga untuk petugas, Anda mungkin perlu guard Sanctum lain
+                                        // atau logika tambahan untuk membedakan user dan masyarakat.
+                                        // Untuk saat ini, kita fokus pada masyarakat.
+        ],
+        
+        // Anda bisa menambahkan guard 'api_masyarakat' jika ingin lebih eksplisit untuk API masyarakat
+        // 'api_masyarakat' => [
+        //     'driver' => 'sanctum', // atau 'passport' jika menggunakan Laravel Passport
+        //     'provider' => 'masyarakat_auth',
+        //     // 'hash' => false, // Jika menggunakan Passport dan token tidak di-hash
+        // ],
     ],
 
     /*
@@ -60,15 +75,15 @@ return [
     */
 
     'providers' => [
-        'users' => [
+        'users' => [ // Provider untuk petugas desa (tabel 'users')
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'masyarakat_auth' => [ // Provider baru untuk masyarakat (tabel 'masyarakat')
+            'driver' => 'eloquent',
+            'model' => App\Models\Masyarakat::class, // Pastikan path ke model Masyarakat benar
+        ],
     ],
 
     /*
@@ -91,11 +106,18 @@ return [
     */
 
     'passwords' => [
-        'users' => [
+        'users' => [ // Password broker untuk petugas (tabel 'users')
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
+        ],
+
+        'masyarakat_reset' => [ // Password broker baru untuk masyarakat
+            'provider' => 'masyarakat_auth', // Menggunakan provider 'masyarakat_auth'
+            'table' => 'masyarakat_password_reset_tokens', // Tabel token reset untuk masyarakat
+            'expire' => 60, // Menit
+            'throttle' => 60, // Detik
         ],
     ],
 

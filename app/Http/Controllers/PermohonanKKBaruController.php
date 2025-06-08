@@ -3,185 +3,110 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\PermohonananKKBaru; // Pastikan nama model Anda benar
+use App\Models\PermohonananKKBaru;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon; // Digunakan untuk timestamp
+use Carbon\Carbon;
 
 class PermohonanKKBaruController extends Controller
 {
     /**
-     * Menampilkan daftar permohonan Kartu Keluarga Baru.
+     * PERBAIKAN: Menampilkan daftar permohonan dengan filter dan paginasi.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Mengambil semua data permohonan KK Baru
-        $data = PermohonananKKBaru::all();
+        $query = PermohonananKKBaru::with('masyarakat')->latest();
+
+        // 1. Filter berdasarkan kata kunci pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                // Mencari di relasi masyarakat (nama atau nik)
+                $q->whereHas('masyarakat', function($subQ) use ($search) {
+                    $subQ->where('nama', 'like', "%{$search}%")
+                         ->orWhere('nik', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // 2. Filter berdasarkan status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Gunakan paginate untuk data yang banyak, dan withQueryString agar filter tetap ada saat pindah halaman
+        $data = $query->paginate(10)->withQueryString();
+        
         return view('petugas.pengajuan.kk_baru.index', compact('data'));
     }
 
     /**
-     * Memverifikasi permohonan KK Baru.
-     * Status diubah menjadi 'diterima'.
+     * Menampilkan detail satu permohonan untuk diproses.
+     */
+    public function show($id)
+    {
+        $permohonan = PermohonananKKBaru::with('masyarakat')->findOrFail($id);
+        return view('petugas.pengajuan.kk_baru.show', compact('permohonan'));
+    }
+
+    /**
+     * Memverifikasi permohonan.
      */
     public function verifikasi($id)
     {
         $permohonan = PermohonananKKBaru::findOrFail($id);
-        $permohonan->status = 'diterima'; // Mengubah status menjadi 'diterima'
+        $permohonan->status = 'diterima';
         $permohonan->save();
 
-        return redirect()->route('permohonan-kk.index')->with('success', 'Permohonan berhasil diverifikasi. Petugas dapat mengunggah file final.');
+        return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('success', 'Permohonan berhasil diverifikasi.');
     }
 
     /**
-     * Menolak permohonan KK Baru dan menyimpan catatan penolakan.
+     * Menolak permohonan.
      */
     public function tolak(Request $request, $id)
     {
+        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $permohonan = PermohonananKKBaru::findOrFail($id);
+        $permohonan->status = 'ditolak';
+        $permohonan->catatan_penolakan = $request->catatan_penolakan;
+        $permohonan->save();
+        
+        return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('error', 'Permohonan telah ditolak.');
+    }
+
+    /**
+     * Menyelesaikan permohonan dengan mengunggah file hasil akhir.
+     */
+    public function selesaikan(Request $request, $id)
+    {
+        $request->validate(['file_hasil_akhir' => 'required|file|mimes:pdf|max:2048']);
         $permohonan = PermohonananKKBaru::findOrFail($id);
 
-        // Validasi catatan penolakan
-        $request->validate([
-            'catatan_penolakan' => 'required|string|max:500', // Catatan tidak boleh kosong, max 500 karakter
-        ]);
+        if ($request->hasFile('file_hasil_akhir')) {
+            if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
+                Storage::disk('public')->delete($permohonan->file_hasil_akhir);
+            }
+            
+            $path = $request->file('file_hasil_akhir')->store('permohonan_kk_baru/hasil_akhir', 'public');
+            $permohonan->file_hasil_akhir = $path;
+        }
 
-        $permohonan->status = 'ditolak'; // Mengubah status menjadi 'ditolak'
-        $permohonan->catatan_penolakan = $request->input('catatan_penolakan'); // Menyimpan catatan penolakan
+        $permohonan->status = 'selesai';
+        $permohonan->tanggal_selesai_proses = Carbon::now();
         $permohonan->save();
 
-        return redirect()->route('permohonan-kk.index')->with('error', 'Permohonan berhasil ditolak dengan catatan.');
+        return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('success', 'Proses permohonan berhasil diselesaikan.');
     }
 
     /**
-     * Menampilkan formulir untuk membuat permohonan KK Baru.
+     * Mengunduh file hasil akhir.
      */
-    public function create()
-    {
-        return view('petugas.pengajuan.kk_baru.create');
-    }
-
-    /**
-     * Menyimpan permohonan KK Baru yang baru dibuat ke database.
-     */
-    public function store(Request $request)
-    {
-        // 1. Validasi Input
-        $validator = Validator::make($request->all(), [
-            'file_kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // Wajib, file, tipe, max 2MB
-            'file_ktp' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'surat_pengantar_rt_rw' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'buku_nikah_akta_cerai' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Nullable jika tidak wajib
-            'surat_pindah_datang' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'ijazah_terakhir' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'catatan' => 'nullable|string|max:500', // Catatan bisa kosong, max 500 karakter
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-
-        // 2. Proses Upload File
-        $uploadedFilePaths = [];
-        $fileFields = [
-            'file_kk',
-            'file_ktp',
-            'surat_pengantar_rt_rw',
-            'buku_nikah_akta_cerai',
-            'surat_pindah_datang',
-            'ijazah_terakhir',
-        ];
-
-        foreach ($fileFields as $field) {
-            if ($request->hasFile($field)) {
-                $filePath = $request->file($field)->store('permohonan_kk_baru', 'public'); // Simpan di storage/app/public/permohonan_kk_baru
-                $uploadedFilePaths[$field] = $filePath;
-            } else {
-                $uploadedFilePaths[$field] = null; // Set null jika file tidak diunggah (untuk nullable fields)
-            }
-        }
-
-        // 3. Simpan Data ke Database
-        try {
-            PermohonananKKBaru::create([
-                'file_kk' => $uploadedFilePaths['file_kk'],
-                'file_ktp' => $uploadedFilePaths['file_ktp'],
-                'surat_pengantar_rt_rw' => $uploadedFilePaths['surat_pengantar_rt_rw'],
-                'buku_nikah_akta_cerai' => $uploadedFilePaths['buku_nikah_akta_cerai'],
-                'surat_pindah_datang' => $uploadedFilePaths['surat_pindah_datang'],
-                'ijazah_terakhir' => $uploadedFilePaths['ijazah_terakhir'],
-                'catatan' => $request->input('catatan'),
-                'status' => 'pending', // Status awal selalu 'pending'
-            ]);
-
-            return redirect()->route('permohonan-kk.index')->with('success', 'Permohonan KK Baru berhasil diajukan.');
-        } catch (\Exception $e) {
-            // Jika terjadi error saat menyimpan ke DB, hapus file yang sudah diunggah
-            foreach ($uploadedFilePaths as $path) {
-                if ($path) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan permohonan: ' . $e->getMessage())->withInput();
-        }
-    }
-
-    /**
-     * Mengunggah file PDF Kartu Keluarga final setelah permohonan diterima.
-     */
-    public function uploadFinalPdf(Request $request, $id)
+    public function downloadFinal($id)
     {
         $permohonan = PermohonananKKBaru::findOrFail($id);
-
-        // Validasi file PDF yang diunggah
-        $request->validate([
-            'file_hasil_akhir' => 'required|file|mimes:pdf|max:2048', // Wajib, file PDF, max 2MB
-        ]);
-
-        try {
-            if ($request->hasFile('file_hasil_akhir')) {
-                // Hapus file lama jika ada
-                if ($permohonan->file_hasil_akhir) {
-                    // Pastikan path yang disimpan adalah path relatif dari storage/app
-                    $oldPath = str_replace('/storage/', 'public/', $permohonan->file_hasil_akhir);
-                    if (Storage::exists($oldPath)) {
-                        Storage::delete($oldPath);
-                    }
-                }
-
-                // Simpan file baru di direktori public/dokumen_hasil_kk
-                $path = $request->file('file_hasil_akhir')->store('dokumen_hasil_kk', 'public');
-                $permohonan->file_hasil_akhir = Storage::url($path); // Simpan path yang bisa diakses publik (misal: /storage/dokumen_hasil_kk/namafile.pdf)
-                $permohonan->status = 'selesai'; // Ubah status menjadi 'selesai' setelah upload
-                $permohonan->tanggal_selesai_proses = Carbon::now(); // Catat tanggal selesai proses
-                $permohonan->save();
-
-                return redirect()->back()->with('success', 'File Kartu Keluarga final berhasil diunggah dan status diperbarui.');
-            }
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengunggah file: ' . $e->getMessage());
+        if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
+            return Storage::disk('public')->download($permohonan->file_hasil_akhir);
         }
-
-        return redirect()->back()->with('error', 'Gagal mengunggah file Kartu Keluarga final.');
-    }
-
-    /**
-     * Mengunduh dokumen hasil akhir.
-     */
-    public function downloadFinal(Request $request, $id)
-    {
-        $permohonan = PermohonananKKBaru::findOrFail($id);
-
-        if ($permohonan->file_hasil_akhir) {
-            // Ambil path relatif dari storage/app/public
-            // Misalnya, jika file_hasil_akhir adalah '/storage/dokumen_hasil_kk/file.pdf',
-            // kita perlu mengubahnya menjadi 'dokumen_hasil_kk/file.pdf' untuk Storage::download
-            $filePath = str_replace('/storage/', '', $permohonan->file_hasil_akhir);
-
-            if (Storage::disk('public')->exists($filePath)) {
-                return Storage::disk('public')->download($filePath);
-            }
-        }
-
-        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan atau tidak dapat diunduh.');
+        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan di server.');
     }
 }

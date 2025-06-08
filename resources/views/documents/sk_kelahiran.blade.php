@@ -5,101 +5,142 @@
     <title>Surat Keterangan Kelahiran</title>
     <style>
         body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-family: 'Calibri', sans-serif; /* Font Calibri */
+            font-size: 11pt; /* Ukuran font dasar sedikit dikecilkan untuk efisiensi ruang */
+            line-height: 1.3; /* Mengurangi jarak antar baris */
             margin: 0;
-            padding: 20px;
+            padding: 15px; /* Mengurangi padding halaman */
         }
         .container {
-            width: 80%;
+            width: 90%; /* Lebar container diperbesar untuk memaksimalkan ruang */
             margin: auto;
-            padding: 20px;
+            padding: 10px; /* Mengurangi padding container */
         }
         .header, .footer {
             text-align: center;
         }
         .kop-surat {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px; /* Mengurangi margin bawah kop surat */
+            padding-bottom: 5px; /* Sedikit padding di bawah kop surat */
         }
         .kop-surat img {
-            width: 80px; /* Sesuaikan ukuran logo */
+            width: 50px; /* Ukuran logo diperkecil menjadi 50px */
             height: auto;
             float: left;
             margin-right: 15px;
+            vertical-align: middle; /* Memastikan logo sejajar dengan teks */
+        }
+        .kop-surat div { /* Kontainer untuk teks kop surat */
+            overflow: hidden; /* Clear float */
         }
         .kop-surat h3, .kop-surat h4 {
             margin: 0;
             padding: 0;
-            line-height: 1.2;
+            line-height: 1.1; /* Mengurangi jarak antar baris di kop */
+            font-weight: normal; /* Opsional: membuat teks kop tidak terlalu tebal */
         }
-        .kop-surat h3 { font-size: 14pt; }
-        .kop-surat h4 { font-size: 12pt; }
+        .kop-surat h4 {
+            font-size: 10.5pt; /* Menyesuaikan ukuran font */
+        }
+        .kop-surat h3 {
+            font-size: 12.5pt; /* Menyesuaikan ukuran font */
+            font-weight: bold;
+        }
         .kop-surat p {
             margin: 0;
             padding: 0;
-            font-size: 10pt;
+            font-size: 9pt; /* Menyesuaikan ukuran font */
         }
         .kop-surat hr {
-            border: 2px solid black;
+            border: 1.5px solid black; /* Tebal garis dikurangi sedikit */
             margin-top: 5px;
+            clear: both; /* Penting: Pastikan HR di bawah float */
         }
         .title {
             text-align: center;
             font-weight: bold;
             text-decoration: underline;
-            margin: 20px 0 10px 0;
-            font-size: 14pt;
+            margin: 15px 0 8px 0; /* Mengurangi margin atas dan bawah */
+            font-size: 12.5pt; /* Menyesuaikan ukuran font */
         }
         .nomor-surat {
             text-align: center;
-            font-size: 12pt;
-            margin-bottom: 20px;
+            font-size: 10.5pt; /* Menyesuaikan ukuran font */
+            margin-bottom: 15px; /* Mengurangi margin bawah nomor surat */
         }
         .content {
             text-align: justify;
-            margin-bottom: 30px;
+            margin-bottom: 20px; /* Mengurangi margin bawah konten */
+        }
+        .content p {
+            margin-bottom: 5px; /* Mengurangi margin bawah paragraf */
         }
         .indent {
-            text-indent: 40px;
+            text-indent: 30px; /* Indentasi sedikit dikurangi */
         }
         table.data-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 5px 0; /* Mengurangi margin atas dan bawah tabel */
         }
         table.data-table td {
-            padding: 2px 0;
+            padding: 1px 0; /* Mengurangi padding sel tabel */
             vertical-align: top;
+            font-size: 11pt; /* Memastikan font di tabel sesuai body */
         }
         table.data-table td:first-child {
-            width: 30%; /* Lebar label */
+            width: 30%;
         }
         table.data-table td:nth-child(2) {
-            width: 5%; /* Lebar titik dua */
+            width: 3%;
         }
         .signature {
-            width: 40%;
+            width: 45%; /* Diperlebar sedikit agar TTD muat */
             float: right;
             text-align: center;
-            margin-top: 30px;
+            margin-top: 20px; /* Mengurangi margin atas tanda tangan */
+            font-size: 11pt; /* Memastikan font di tanda tangan sesuai body */
+        }
+       .signature-area {
+            min-height: 80px; /* Memberi ruang untuk TTD */
+            margin-top: 5px;
+            display: flex; /* Menggunakan flexbox untuk memposisikan gambar */
+            justify-content: center; /* Pusatkan secara horizontal */
+            align-items: center; /* Pusatkan secara vertikal */
+        }
+        .signature-area img {
+            max-width: 150px; /* Atur lebar maksimal gambar TTD */
+            height: auto;
+            margin-bottom: 5px; /* Beri sedikit jarak di bawah gambar */
         }
         .clearfix::after {
             content: "";
             clear: both;
             display: table;
         }
+        .footer {
+            position: absolute;
+            bottom: 15px; /* Mengurangi jarak footer dari bawah */
+            left: 0;
+            right: 0;
+        }
+        .footer p {
+            font-size: 7.5pt; /* Ukuran font footer sedikit lebih kecil */
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="kop-surat clearfix">
-            <img src="{{ public_path('img/logo_mukomuko.png') }}" alt="Logo Mukomuko"> {{-- Ganti dengan path logo Anda --}}
-            <h4>PEMERINTAH KABUPATEN MUKOMUKO</h4>
-            <h4>KECAMATAN IPUH</h4>
-            <h3>DESA SEMUNDAM</h3>
-            <p>Alamat : Desa Semundam, Kecamatan Ipuh, Kabupaten Mukomuko Kode Pos 38364</p>
+            <img src="{{ public_path('sbadmin/img/logo_kampar.png') }}" alt="Logo Desa Kumantan">
+            <div>
+                <h4>PEMERINTAH KABUPATEN KAMPAR</h4>
+                <h4>KECAMATAN BANGKINANG KOTA</h4>
+                <h3>DESA KUMANTAN</h3>
+                <p>Alamat : JL. Mahmud Marzuki, Kelurahan Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar, Kode Pos 28463</p>
+            </div>
             <hr>
         </div>
 
@@ -114,10 +155,10 @@
             <p class="indent">Yang bertanda tangan di bawah ini:</p>
 
             <table class="data-table">
-                <tr><td>Nama</td><td>:</td><td>JAFRI . R</td></tr> {{-- Ganti dengan nama kepala desa --}}
+                <tr><td>Nama</td><td>:</td><td>FIRDAUS, S.Pd</td></tr>
                 <tr><td>Jabatan</td><td>:</td><td>Kepala Desa Kumantan</td></tr>
-                <tr><td>Kecamatan</td><td>:</td><td>Ipuh</td></tr>
-                <tr><td>Kabupaten</td><td>:</td><td>Mukomuko</td></tr>
+                <tr><td>Kecamatan</td><td>:</td><td>Bangkinang Kota</td></tr>
+                <tr><td>Kabupaten</td><td>:</td><td>Kampar</td></tr>
             </table>
 
             <p class="indent">Dengan ini menerangkan dengan sesungguhnya telah lahir seorang anak:</p>
@@ -141,13 +182,17 @@
         </div>
 
         <div class="signature clearfix">
-            Semundam, {{ \Carbon\Carbon::parse($permohonan->tanggal_selesai_proses ?? \Carbon\Carbon::now())->translatedFormat('d F Y') }}<br>
-            Kepala Desa Semundam<br><br><br><br>
-            (JAFRI.R)<br> {{-- Ganti dengan nama kepala desa --}}
+            Desa Kumantan, {{ \Carbon\Carbon::parse($permohonan->tanggal_selesai_proses ?? \Carbon\Carbon::now())->translatedFormat('d F Y') }}<br>
+            Kepala Desa Kumantan<br>
+            <div class="signature-area">
+                {{-- Masukkan gambar tanda tangan di sini --}}
+                <img src="{{ public_path('sbadmin/img/ttd_kepala_desa.png') }}" alt="Tanda Tangan Kepala Desa">
+            </div>
+            FIRDAUS, S.Pd<br>
         </div>
 
-        <div class="footer" style="position: absolute; bottom: 20px; left: 0; right: 0;">
-            <p style="font-size: 8pt; text-align: center;">Dokumen ini dicetak secara elektronik oleh Sistem Informasi Layanan Desa Semundam</p>
+        <div class="footer">
+            <p>Dokumen ini dicetak secara elektronik oleh Sistem Informasi Layanan Desa Kumantan</p>
         </div>
     </div>
 </body>

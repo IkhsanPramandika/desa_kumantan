@@ -1,33 +1,33 @@
-<?php
+    <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    return new class extends Migration
     {
-        Schema::create('permohonan_sk_usaha', function (Blueprint $table) {
-            $table->id();
-            $table->string('file_kk')->nullable();
-            $table->string('file_ktp')->nullable();
-            $table->string('nama_usaha')->nullable(); // Kolom tambahan untuk nama usaha
-            $table->string('alamat_usaha')->nullable(); // Kolom tambahan untuk alamat usaha
-            $table->text('catatan')->nullable();
-            $table->enum('status', ['pending', 'diterima', 'ditolak'])->default('pending');
-            $table->timestamps();
-        });
-    }
+        /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('permohonan_sk_usaha', function (Blueprint $table) {
+                $table->id();
+                $table->string('file_kk')->nullable();
+                $table->string('file_ktp')->nullable();
+                $table->string('nama_usaha')->nullable(); // Kolom tambahan untuk nama usaha
+                $table->string('alamat_usaha')->nullable(); // Kolom tambahan untuk alamat usaha
+                $table->text('catatan')->nullable();
+                $table->enum('status', ['pending', 'diterima', 'ditolak'])->default('pending');
+                $table->timestamps();
+            });
+        }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('permohonan_sk_usaha');
-    }
-};
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('permohonan_sk_usaha');
+        }
+    };

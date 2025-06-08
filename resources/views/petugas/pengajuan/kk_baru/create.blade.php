@@ -148,7 +148,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Submit Permohonan</button>
-            <a href="{{ route('permohonan-kk.index') }}" class="btn btn-secondary">Batal</a>
+            <a href="{{ route('permohonan-kk-baru.index') }}" class="btn btn-secondary">Batal</a>
         </form>
     </div>
 </div>
