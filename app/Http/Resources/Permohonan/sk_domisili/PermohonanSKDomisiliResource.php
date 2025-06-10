@@ -25,7 +25,7 @@ class PermohonanSKDomisiliResource extends JsonResource
             'tanggal_selesai' => optional($this->tanggal_selesai_proses)->toIso8601String(),
             'file_hasil_akhir_url' => $this->when($this->status === 'selesai' && $this->file_hasil_akhir, 
                 // Jika ingin link download aman, arahkan ke route API, bukan URL storage langsung
-                route('api.permohonan.sk-domisili.download', $this->id)
+                route('api.masyarakat.auth.permohonan-sk-domisili.download', $this->id)
             ),
         ];
     }

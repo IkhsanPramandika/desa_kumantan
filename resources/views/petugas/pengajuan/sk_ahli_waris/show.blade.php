@@ -18,9 +18,9 @@
                 <dl class="row">
                     <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_pewaris ?? '-' }}</dd>
                     <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_pewaris ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pewaris ?? '-' }}, {{ $permohonan->tanggal_lahir_pewaris ? $permohonan->tanggal_lahir_pewaris->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Tgl Meninggal</dt><dd class="col-sm-8">{{ $permohonan->tanggal_meninggal_pewaris ? $permohonan->tanggal_meninggal_pewaris->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Alamat Terakhir</dt><dd class="col-sm-8">{{ $permohonan->alamat_pewaris ?? '-' }}</dd>
+                    <dt class="col-sm-4">Tempat / Tanggal Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pewaris ?? '-' }}, {{ $permohonan->tanggal_lahir_pewaris ? $permohonan->tanggal_lahir_pewaris->format('d F Y') : '-' }}</dd>
+                    <dt class="col-sm-4">Tanggal Meninggal</dt><dd class="col-sm-8">{{ $permohonan->tanggal_meninggal_pewaris ? $permohonan->tanggal_meninggal_pewaris->format('d F Y') : '-' }}</dd>
+                    <dt class="col-sm-4">Alamat Pewaris</dt><dd class="col-sm-8">{{ $permohonan->alamat_pewaris ?? '-' }}</dd>
                 </dl>
                 <hr>
                 <h5 class="font-weight-bold mt-4">Daftar Ahli Waris</h5>
@@ -99,9 +99,9 @@
                     @php
                         $lampiran = [
                             'file_ktp_pemohon' => 'KTP Pemohon',
-                            'file_kk_pemohon' => 'KK Pemohon',
+                            'file_kk_pemohon' => 'Kartu Keluarga Pemohon',
                             'file_ktp_ahli_waris' => 'KTP Ahli Waris',
-                            'file_kk_ahli_waris' => 'KK Ahli Waris',
+                            'file_kk_ahli_waris' => 'Kartu Keluarga Ahli Waris',
                             'surat_keterangan_kematian' => 'Surat Kematian',
                             'surat_pengantar_rt_rw' => 'Surat Pengantar RT/RW',
                         ];

@@ -9,6 +9,7 @@ use App\Http\Resources\Permohonan\sk_domisili\PermohonanSKDomisiliResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Events\PermohonanMasuk; // <-- 'use' statement ini sudah benar
 
 class SKDomisiliApiController extends Controller
 {
@@ -32,6 +33,7 @@ class SKDomisiliApiController extends Controller
     {
         $validatedData = $request->validated();
         $user = $request->user();
+        $uploadedFilePaths = []; // Untuk menyimpan path file yang diupload
 
         try {
             $dbData = $validatedData;
@@ -46,10 +48,32 @@ class SKDomisiliApiController extends Controller
                 if ($request->hasFile($field)) {
                     $path = $request->file($field)->store($basePath, 'public');
                     $dbData[$field] = $path;
+                    $uploadedFilePaths[] = $path; // Simpan path untuk rollback jika gagal
                 }
             }
 
             $permohonan = PermohonananSKDomisili::create($dbData);
+
+            // ====================================================================
+            // [KODE TAMBAHAN] MEMANGGIL EVENT UNTUK NOTIFIKASI REAL-TIME
+            // ====================================================================
+            try {
+                $dataNotifikasi = [
+                    'jenis_surat' => 'SK Domisili',
+                    'nama_pemohon' => $permohonan->nama_pemohon_atau_lembaga,
+                    'waktu' => now()->diffForHumans(),
+                    'icon' => 'fas fa-home text-white', // Icon yang relevan dengan domisili
+                    'bg_color' => 'bg-primary',         // Warna latar ikon
+                    'url' => route('petugas.permohonan-sk-domisili.show', $permohonan->id)
+                ];
+                // Mengirim event ke antrian (queue)
+                event(new PermohonanMasuk($dataNotifikasi));
+            } catch (\Exception $e) {
+                // Jika pengiriman notifikasi gagal, jangan gagalkan seluruh proses.
+                // Cukup catat errornya saja.
+                Log::error('Gagal mengirim event notifikasi SK Domisili: ' . $e->getMessage());
+            }
+            // ====================================================================
             
             return (new PermohonanSKDomisiliResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Domisili berhasil diajukan.'])
@@ -59,11 +83,9 @@ class SKDomisiliApiController extends Controller
         } catch (\Exception $e) {
             Log::error('[API SK Domisili - Store] Gagal menyimpan: ' . $e->getMessage());
             // Rollback file yang sudah terupload jika ada error DB
-            if (isset($dbData) && is_array($dbData)) {
-                foreach ($fileFields as $field) {
-                    if (!empty($dbData[$field]) && Storage::disk('public')->exists($dbData[$field])) {
-                        Storage::disk('public')->delete($dbData[$field]);
-                    }
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);

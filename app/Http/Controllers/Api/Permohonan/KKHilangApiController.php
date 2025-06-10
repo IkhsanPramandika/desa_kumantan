@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonananKKHilang; // Pastikan nama model benar
-use App\Http\Requests\Api\Permohonan\kk_hilang\StoreKkHilangRequest; // Path ke FormRequest
+use App\Http\Requests\Api\Permohonan\kk_hilang\StoreKKHilangRequest; // Path ke FormRequest
 use App\Http\Resources\Permohonan\kk_hilang\PermohonananKKHilangResource; // Path ke Resource
 // use App\Http\Resources\Permohonan\kk_hilang\PermohonananKKHilangCollection; // Jika ada
 use Illuminate\Http\Request;

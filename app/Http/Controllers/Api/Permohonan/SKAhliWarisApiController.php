@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonananSKAhliWaris;
-use App\Http\Requests\Api\Permohonan\sk_ahli_waris\StoreSkAhliWarisRequest;
+use App\Http\Requests\Api\Permohonan\sk_ahli_waris\StoreSKAhliWarisRequest;
 use App\Http\Resources\Permohonan\sk_ahli_waris\PermohonanSKAhliWarisResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +28,7 @@ class SKAhliWarisApiController extends Controller
     /**
      * Menyimpan permohonan baru dari aplikasi mobile.
      */
-    public function store(StoreSkAhliWarisRequest $request)
+    public function store(StoreSKAhliWarisRequest $request)
     {
         $validatedData = $request->validated();
         $user = $request->user();

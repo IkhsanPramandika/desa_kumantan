@@ -19,10 +19,11 @@ use App\Http\Controllers\Api\Pengumuman\PengumumanApiController;
 use App\Http\Controllers\Api\Permohonan\KKBaruApiController;
 use App\Http\Controllers\Api\Permohonan\SKDomisiliApiController;
 use App\Http\Controllers\Api\Permohonan\KKPerubahanApiController; 
+
 // Tambahkan use statement untuk controller API permohonan lainnya:
 // use App\Http\Controllers\Api\Permohonan\KKHilangApiController;
 
-// use App\Http\Controllers\Api\Permohonan\SKAhliWarisApiController;
+
 // use App\Http\Controllers\Api\Permohonan\SKKelahiranApiController;
 // use App\Http\Controllers\Api\Permohonan\SKPerkawinanApiController;
 // use App\Http\Controllers\Api\Permohonan\SKTidakMampuApiController;

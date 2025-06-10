@@ -6,12 +6,12 @@
 
     <form
         class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
-        action="{{ route('search') }}" method="GET"> {{-- Action dan Method diatur --}}
+        action="<?php echo e(route('search')); ?>" method="GET"> 
         <div class="input-group">
             <input type="text" class="form-control bg-light border-0 small" placeholder="Pencarian ..."
-                aria-label="Search" aria-describedby="basic-addon2" name="query" value="{{ request('query') }}"> {{-- name="query" dan value untuk mempertahankan input --}}
+                aria-label="Search" aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>"> 
             <div class="input-group-append">
-                <button class="btn btn-primary" type="submit"> {{-- Type diubah menjadi submit --}}
+                <button class="btn btn-primary" type="submit"> 
                     <i class="fas fa-search fa-sm"></i>
                 </button>
             </div>
@@ -27,13 +27,13 @@
             </a>
             <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
                 aria-labelledby="searchDropdown">
-                <form class="form-inline mr-auto w-100 navbar-search" action="{{ route('search') }}" method="GET"> {{-- Action dan Method diatur --}}
+                <form class="form-inline mr-auto w-100 navbar-search" action="<?php echo e(route('search')); ?>" method="GET"> 
                     <div class="input-group">
                         <input type="text" class="form-control bg-light border-0 small"
                             placeholder="Pencarian ..." aria-label="Search"
-                            aria-describedby="basic-addon2" name="query" value="{{ request('query') }}"> {{-- name="query" dan value untuk mempertahankan input --}}
+                            aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>"> 
                         <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit"> {{-- Type diubah menjadi submit --}}
+                            <button class="btn btn-primary" type="submit"> 
                                 <i class="fas fa-search fa-sm"></i>
                             </button>
                         </div>
@@ -46,7 +46,7 @@
     <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-bell fa-fw"></i>
-        {{-- ID ditambahkan di sini --}}
+        
         <span class="badge badge-danger badge-counter" id="notifikasi-counter">0</span>
     </a>
     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -55,9 +55,9 @@
             Pusat Notifikasi
         </h6>
         
-        {{-- Area notifikasi akan diisi oleh JavaScript --}}
+        
         <div id="notifikasi-list">
-            {{-- Contoh notifikasi awal jika tidak ada --}}
+            
             <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada notifikasi baru</a>
         </div>
 
@@ -78,7 +78,7 @@
                 </h6>
                 <a class="dropdown-item d-flex align-items-center" href="#">
                     <div class="dropdown-list-image mr-3">
-                        <img class="rounded-circle" src="{{ asset('sbadmin/img/undraw_profile_1.svg') }}"
+                        <img class="rounded-circle" src="<?php echo e(asset('sbadmin/img/undraw_profile_1.svg')); ?>"
                             alt="...">
                         <div class="status-indicator bg-success"></div>
                     </div>
@@ -98,10 +98,11 @@
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
-                    {{ Auth::user()->name ?? 'Guest' }}
+                    <?php echo e(Auth::user()->name ?? 'Guest'); ?>
+
                 </span>
                 <img class="img-profile rounded-circle"
-                    src="{{ asset('sbadmin/img/undraw_profile.svg') }}">
+                    src="<?php echo e(asset('sbadmin/img/undraw_profile.svg')); ?>">
             </a>
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="userDropdown">
@@ -123,8 +124,8 @@
                 <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                    Logout 
                 </a>
-                <form id="logout-form-modal" action="{{ route('logout') }}" method="POST" style="display: none;">
-                    @csrf
+                <form id="logout-form-modal" action="<?php echo e(route('logout')); ?>" method="POST" style="display: none;">
+                    <?php echo csrf_field(); ?>
                 </form>
             </div>
         </li>
@@ -132,3 +133,4 @@
     </ul>
 
 </nav>
+<?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/layouts/navbar.blade.php ENDPATH**/ ?>

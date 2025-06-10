@@ -6,7 +6,7 @@ use App\Models\PermohonananSKAhliWaris;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\PDF;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
@@ -74,7 +74,7 @@ class PermohonanSKAhliWarisController extends Controller
     /**
      * Membuat PDF dari data yang sudah ada (diinput masyarakat) dan menyelesaikan permohonan.
      */
-    public function selesaikan(Request $request, $id)
+     public function selesaikan(Request $request, $id)
     {
         $permohonan = PermohonananSKAhliWaris::findOrFail($id);
         
@@ -87,26 +87,55 @@ class PermohonanSKAhliWarisController extends Controller
             $permohonan->status = 'selesai';
             $permohonan->tanggal_selesai_proses = Carbon::now();
 
+            // [PENINGKATAN] Generate nomor surat hanya jika belum ada.
             if (is_null($permohonan->nomor_surat)) {
-                $currentYear = now()->year;
-                $lastNomorUrut = PermohonananSKAhliWaris::whereYear('tanggal_selesai_proses', $currentYear)->max('nomor_urut') ?? 0;
+                $now = Carbon::now();
+                $romawiBulan = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                
+                // Mengambil nomor urut terakhir di tahun ini, jika tidak ada, mulai dari 0.
+                $lastNomorUrut = PermohonananSKAhliWaris::whereYear('tanggal_selesai_proses', $now->year)->max('nomor_urut') ?? 0;
+                
                 $permohonan->nomor_urut = $lastNomorUrut + 1;
-                $permohonan->nomor_surat = "NOMOR/SKAW/ANDA/" . $permohonan->nomor_urut; // Sesuaikan format Anda
+                
+                // [PENINGKATAN] Format nomor surat yang lebih baik. Sesuaikan dengan standar desa Anda.
+                // Contoh: 474/001/SKAW/DS-KMTN/VI/2025
+                $nomorSurat = sprintf("474/%03d/SKAW/DS-KMTN/%s/%d", 
+                    $permohonan->nomor_urut,
+                    $romawiBulan[$now->month - 1], // Bulan dalam romawi
+                    $now->year
+                );
+                $permohonan->nomor_surat = $nomorSurat;
             }
 
-            // Karena $casts sudah bekerja, kita bisa langsung meneruskan data ke view PDF.
-            $pdf = Pdf::loadView('documents.sk_ahli_waris', ['permohonan' => $permohonan]);
-            $fileName = 'SK_Ahli_Waris_' . Str::slug($permohonan->nama_pewaris) . '_' . $permohonan->id . '.pdf';
-            $path = 'permohonan_sk_ahli_waris/hasil_akhir/' . $fileName;
+            // Data yang akan dikirim ke view PDF
+            $dataForPdf = ['permohonan' => $permohonan];
+
+            $pdf = Pdf::loadView('documents.sk_ahli_waris', $dataForPdf);
+            
+            $fileName = 'SK-Ahli-Waris_' . Str::slug($permohonan->nama_pewaris) . '_' . $permohonan->id . '.pdf';
+            $path = 'permohonan/sk_ahli_waris/' . $fileName;
+            
+            // Simpan PDF ke storage
             Storage::disk('public')->put($path, $pdf->output());
             
             $permohonan->file_hasil_akhir = $path;
             $permohonan->save();
 
-            return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('success', 'Surat Keterangan Ahli Waris berhasil dibuat.');
+            return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('success', 'Surat Keterangan Ahli Waris berhasil dibuat dan disimpan.');
+        
         } catch (\Exception $e) {
-            Log::error("Gagal membuat PDF SK Ahli Waris untuk ID {$id}: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat membuat dokumen.');
+            // [PENINGKATAN] Logging yang lebih detail untuk debugging
+            Log::error("Gagal membuat PDF SK Ahli Waris untuk ID {$id}", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString() // Ini akan memberikan jejak lengkap error
+            ]);
+            
+            // [PENINGKATAN] Pesan error yang lebih membantu saat mode debug aktif
+            $errorMessage = config('app.debug') 
+                ? 'Terjadi kesalahan saat membuat dokumen: ' . $e->getMessage()
+                : 'Terjadi kesalahan saat membuat dokumen. Silakan hubungi administrator.';
+
+            return redirect()->back()->with('error', $errorMessage);
         }
     }
 
