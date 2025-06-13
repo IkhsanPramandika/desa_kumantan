@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKPerkawinan;
-use App\Http\Requests\Api\Permohonan\sk_perkawinan\StoreSkPerkawinanRequest;
+use App\Models\PermohonanSKPerkawinan;
+use App\Http\Requests\Api\Permohonan\sk_perkawinan\StoreSKPerkawinanRequest;
 use App\Http\Resources\Permohonan\sk_perkawinan\PermohonanSKPerkawinanResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class SKPerkawinanApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKPerkawinan::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
 
@@ -28,7 +28,7 @@ class SKPerkawinanApiController extends Controller
     /**
      * Menyimpan permohonan baru dari aplikasi mobile.
      */
-    public function store(StoreSkPerkawinanRequest $request)
+    public function store(StoreSKPerkawinanRequest $request)
     {
         $validatedData = $request->validated();
         $user = $request->user();
@@ -52,7 +52,7 @@ class SKPerkawinanApiController extends Controller
                 }
             }
 
-            $permohonan = PermohonananSKPerkawinan::create($dbData);
+            $permohonan = PermohonanSKPerkawinan::create($dbData);
             
             return (new PermohonanSKPerkawinanResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Perkawinan berhasil diajukan.'])
@@ -78,7 +78,7 @@ class SKPerkawinanApiController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKPerkawinan::where('id', $id)
+        $permohonan = PermohonanSKPerkawinan::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->firstOrFail();
             
@@ -91,7 +91,7 @@ class SKPerkawinanApiController extends Controller
     public function downloadHasil(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKPerkawinan::where('id', $id)
+        $permohonan = PermohonanSKPerkawinan::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
             ->first();

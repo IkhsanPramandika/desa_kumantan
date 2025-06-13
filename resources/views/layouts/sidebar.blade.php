@@ -48,7 +48,6 @@
                 <a class="collapse-item" href="{{ route('petugas.permohonan-sk-usaha.index') }}">Surat Keterangan Usaha</a>
                 <a class="collapse-item" href="{{ route('petugas.permohonan-sk-domisili.index') }}">Surat Keterangan Domisili</a>
                 <a class="collapse-item" href="{{ route('petugas.permohonan-sk-tidak-mampu.index') }}">Surat Keterangan Tidak Mampu</a>
-                {{-- <a class="collapse-item" href="{{ route('permohonan-sk-kematian.index') }}">Surat Keterangan Kematian</a> --}}
             </div>
         </div>
     </li>
@@ -95,9 +94,6 @@
          </div>
     </li>
  
-
-    
-
     <hr class="sidebar-divider d-none d-md-block">
 
     <div class="text-center d-none d-md-inline">

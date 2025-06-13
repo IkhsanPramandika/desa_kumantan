@@ -239,7 +239,7 @@
         </div>
 
         <div class="signature-doc clearfix">
-            <span class="tempat-tanggal-surat">{{ strtoupper($nama_desa ?? 'TANJUNG MAS') }}, {{ $tanggal_surat_dibuat ? \Carbon\Carbon::parse($tanggal_surat_dibuat)->isoFormat('D MMMM YYYY') : \Carbon\Carbon::now()->isoFormat('D MMMM YYYY') }}</span>
+            <span class="tempat-tanggal-surat">{{ strtoupper($nama_desa ?? 'TANJUNG MAS') }}, {{ $tanggal_selesai_proses ? \Carbon\Carbon::parse($tanggal_surat_dibuat)->isoFormat('D MMMM YYYY') : \Carbon\Carbon::now()->isoFormat('D MMMM YYYY') }}</span>
             <span class="an-jabatan">{{ $an_pejabat ?? 'A.N KEPALA DESA TANJUNG MAS' }},</span>
             <span class="jabatan-penandatangan">{{ strtoupper($jabatan_pejabat ?? 'SEKRETARIS DESA') }}</span>
             <div class="signature-area-doc">

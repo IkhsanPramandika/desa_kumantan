@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKAhliWaris;
+use App\Models\PermohonanSKAhliWaris;
 use App\Http\Requests\Api\Permohonan\sk_ahli_waris\StoreSKAhliWarisRequest;
 use App\Http\Resources\Permohonan\sk_ahli_waris\PermohonanSKAhliWarisResource;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class SKAhliWarisApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKAhliWaris::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKAhliWaris::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
 
@@ -54,7 +54,7 @@ class SKAhliWarisApiController extends Controller
 
             // Model sudah memiliki $casts['daftar_ahli_waris' => 'array'],
             // jadi Eloquent akan otomatis meng-handle konversi ke JSON.
-            $permohonan = PermohonananSKAhliWaris::create($dbData);
+            $permohonan = PermohonanSKAhliWaris::create($dbData);
             
             return (new PermohonanSKAhliWarisResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Ahli Waris berhasil diajukan.'])
@@ -80,7 +80,7 @@ class SKAhliWarisApiController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKAhliWaris::where('id', $id)
+        $permohonan = PermohonanSKAhliWaris::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->firstOrFail();
             
@@ -93,7 +93,7 @@ class SKAhliWarisApiController extends Controller
     public function downloadHasil(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKAhliWaris::where('id', $id)
+        $permohonan = PermohonanSKAhliWaris::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
             ->first();

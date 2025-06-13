@@ -1,30 +1,30 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
-// --- Impor semua controller yang dibutuhkan di satu tempat ---
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PengumumanController;
-use App\Http\Controllers\PetugasController;
-use App\Http\Controllers\DocumentVerificationController;
-use App\Http\Controllers\PermohonanKKBaruController;
-use App\Http\Controllers\PermohonanKKHilangController;
-use App\Http\Controllers\PermohonanKKPerubahanDataController;
-use App\Http\Controllers\PermohonanSKDomisiliController;
-use App\Http\Controllers\PermohonanSKKelahiranController;
-use App\Http\Controllers\PermohonanSKPerkawinanController;
-use App\Http\Controllers\PermohonanSKTidakMampuController;
-use App\Http\Controllers\PermohonanSKUsahaController;
-use App\Http\Controllers\PermohonanSKAhliWarisController;
+// Dashboord
+use App\Http\Controllers\Petugas\Dashboard\SearchController;
+use App\Http\Controllers\Petugas\Dashboard\PetugasController;
+use App\Http\Controllers\Petugas\Dashboard\ProfileController;
+use App\Http\Controllers\Petugas\Dashboard\DashboardController;
+use App\Http\Controllers\Petugas\Dashboard\NotificationController;
+use App\Http\Controllers\Petugas\Dashboard\DocumentVerificationController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-| File ini telah dirapikan untuk konsistensi, keamanan, dan kemudahan perawatan.
-*/
+// Pengumuman
+use App\Http\Controllers\Petugas\Pengumuman\PengumumanController;
+
+// Permohonan
+use App\Http\Controllers\Petugas\Permohonan\PermohonanKKBaruController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKUsahaController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanKKHilangController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKDomisiliController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKAhliWarisController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKKelahiranController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKPerkawinanController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanSKTidakMampuController;
+use App\Http\Controllers\Petugas\Permohonan\PermohonanKKPerubahanDataController;
+
 
 // --- RUTE PUBLIK (Bisa diakses siapa saja tanpa login) ---
 Route::get('/search', [SearchController::class, 'index'])->name('search');
@@ -52,8 +52,14 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     // --- Dashboard ---
     Route::get('/dashboard', [PetugasController::class, 'dashboard'])->name('dashboard');
 
+    // TAMBAHKAN RUTE INI
+   
+    Route::get('/notifikasi/baca/{id}', [NotificationController::class, 'markAsRead'])->name('notifikasi.read');
+    Route::get('notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
+        
+
     // --- Profile Petugas ---
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');   
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
@@ -109,5 +115,4 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
             Route::get('/{id}/download-final', [$controller, 'downloadFinal'])->name('download-final');
         });
     }
-
 });

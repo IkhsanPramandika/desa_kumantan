@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKDomisili;
+use App\Models\PermohonanSKDomisili;
 use App\Http\Requests\Api\Permohonan\sk_domisili\StoreSkDomisiliRequest;
 use App\Http\Resources\Permohonan\sk_domisili\PermohonanSKDomisiliResource;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class SKDomisiliApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKDomisili::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
 
@@ -52,7 +52,7 @@ class SKDomisiliApiController extends Controller
                 }
             }
 
-            $permohonan = PermohonananSKDomisili::create($dbData);
+            $permohonan = PermohonanSKDomisili::create($dbData);
 
             // ====================================================================
             // [KODE TAMBAHAN] MEMANGGIL EVENT UNTUK NOTIFIKASI REAL-TIME
@@ -98,7 +98,7 @@ class SKDomisiliApiController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKDomisili::where('id', $id)
+        $permohonan = PermohonanSKDomisili::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->firstOrFail();
             
@@ -111,7 +111,7 @@ class SKDomisiliApiController extends Controller
     public function downloadHasil(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKDomisili::where('id', $id)
+        $permohonan = PermohonanSKDomisili::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
             ->first();

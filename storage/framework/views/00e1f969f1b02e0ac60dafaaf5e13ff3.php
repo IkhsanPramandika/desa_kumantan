@@ -1,99 +1,74 @@
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
+    <!-- Tombol Sidebar -->
     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
         <i class="fa fa-bars"></i>
     </button>
 
-    <form
-        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
-        action="<?php echo e(route('search')); ?>" method="GET"> 
+    <!-- Form Pencarian -->
+    <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
+        action="<?php echo e(route('search')); ?>" method="GET">
         <div class="input-group">
             <input type="text" class="form-control bg-light border-0 small" placeholder="Pencarian ..."
-                aria-label="Search" aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>"> 
+                aria-label="Search" aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>">
             <div class="input-group-append">
-                <button class="btn btn-primary" type="submit"> 
+                <button class="btn btn-primary" type="submit">
                     <i class="fas fa-search fa-sm"></i>
                 </button>
             </div>
         </div>
     </form>
 
+    <!-- Bagian Kanan Navbar -->
     <ul class="navbar-nav ml-auto">
 
-        <li class="nav-item dropdown no-arrow d-sm-none">
-            <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-search fa-fw"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
-                aria-labelledby="searchDropdown">
-                <form class="form-inline mr-auto w-100 navbar-search" action="<?php echo e(route('search')); ?>" method="GET"> 
-                    <div class="input-group">
-                        <input type="text" class="form-control bg-light border-0 small"
-                            placeholder="Pencarian ..." aria-label="Search"
-                            aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>"> 
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit"> 
-                                <i class="fas fa-search fa-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </li>
-
-       <li class="nav-item dropdown no-arrow mx-1">
-    <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i class="fas fa-bell fa-fw"></i>
-        
-        <span class="badge badge-danger badge-counter" id="notifikasi-counter">0</span>
-    </a>
-    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-        aria-labelledby="alertsDropdown">
-        <h6 class="dropdown-header">
-            Pusat Notifikasi
-        </h6>
-        
-        
-        <div id="notifikasi-list">
-            
-            <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada notifikasi baru</a>
-        </div>
-
-        <a class="dropdown-item text-center small text-gray-500" href="#">Tampilkan Semua</a>
-    </div>
-</li>
-
+        <!-- Dropdown Notifikasi (Desain Baru) -->
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
+            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-envelope fa-fw"></i>
-                <span class="badge badge-danger badge-counter">7</span>
+                <i class="fas fa-bell fa-fw"></i>
+                <span class="badge badge-danger badge-counter" id="notifikasi-counter">
+                    <?php echo e(auth()->user()->unreadNotifications->count()); ?>
+
+                </span>
             </a>
             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                aria-labelledby="messagesDropdown">
+                aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">
-                    Message Center
+                    Pusat Notifikasi
                 </h6>
-                <a class="dropdown-item d-flex align-items-center" href="#">
-                    <div class="dropdown-list-image mr-3">
-                        <img class="rounded-circle" src="<?php echo e(asset('sbadmin/img/undraw_profile_1.svg')); ?>"
-                            alt="...">
-                        <div class="status-indicator bg-success"></div>
-                    </div>
-                    <div class="font-weight-bold">
-                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                            problem I've been having.</div>
-                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                    </div>
-                </a>
-                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                <div id="notifikasi-list">
+                    <?php $__empty_1 = true; $__currentLoopData = auth()->user()->unreadNotifications->take(5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notification): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <a href="<?php echo e(route('petugas.notifikasi.read', $notification->id)); ?>" class="dropdown-item d-flex align-items-center">
+                            <div class="mr-3">
+                                <div class="icon-circle bg-primary">
+                                    <i class="fas fa-file-alt text-white"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="small text-gray-500">
+                                    <?php echo e(\Carbon\Carbon::parse($notification->created_at)->diffForHumans()); ?>
+
+                                </div>
+                                <span class="font-weight-bold">
+                                    <?php echo e(Str::limit($notification->data['pesan'], 40)); ?>
+
+                                </span>
+                            </div>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada notifikasi baru</a>
+                    <?php endif; ?>
+                </div>
+
+                <a class="dropdown-item text-center small text-gray-500" href="<?php echo e(route('petugas.notifikasi.index')); ?>">Tampilkan Semua</a>
             </div>
         </li>
 
+        <!-- Divider -->
         <div class="topbar-divider d-none d-sm-block"></div>
 
+        <!-- User Info -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -101,8 +76,7 @@
                     <?php echo e(Auth::user()->name ?? 'Guest'); ?>
 
                 </span>
-                <img class="img-profile rounded-circle"
-                    src="<?php echo e(asset('sbadmin/img/undraw_profile.svg')); ?>">
+                <img class="img-profile rounded-circle" src="<?php echo e(asset('sbadmin/img/undraw_profile.svg')); ?>">
             </a>
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="userDropdown">
@@ -119,10 +93,10 @@
                     Activity Log
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#" 
-                onclick="event.preventDefault(); document.getElementById('logout-form-modal').submit();">
-                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                   Logout 
+                <a class="dropdown-item" href="#"
+                    onclick="event.preventDefault(); document.getElementById('logout-form-modal').submit();">
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Logout
                 </a>
                 <form id="logout-form-modal" action="<?php echo e(route('logout')); ?>" method="POST" style="display: none;">
                     <?php echo csrf_field(); ?>

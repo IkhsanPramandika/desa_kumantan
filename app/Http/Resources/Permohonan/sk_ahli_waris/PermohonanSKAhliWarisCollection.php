@@ -5,7 +5,7 @@ namespace App\Http\Resources\sk_ahli_waris;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
-class PermohonananSKAhliWarisCollection extends ResourceCollection
+class PermohonanSKAhliWarisCollection   extends ResourceCollection
 {
     /**
      * Transform the resource collection into an array.

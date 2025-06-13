@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKKelahiran;
-use App\Http\Requests\Api\Permohonan\sk_kelahiran\StoreSkKelahiranRequest;
-use App\Http\Resources\Permohonan\sk_kelahiran\PermohonananSKKelahiranResource;
+use App\Models\PermohonanSKKelahiran;
+use App\Http\Requests\Api\Permohonan\sk_kelahiran\StoreSKKelahiranRequest;
+use App\Http\Resources\Permohonan\sk_kelahiran\PermohonanSKKelahiranResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class SKKelahiranApiController extends Controller
 {
     protected $attachmentBaseDir = 'permohonan_sk_kelahiran_attachments';
 
-    public function store(StoreSkKelahiranRequest $request): JsonResponse
+    public function store(StoreSKKelahiranRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
         $dbData = $validatedData;
@@ -37,8 +37,8 @@ class SKKelahiranApiController extends Controller
         }
         
         try {
-            $permohonan = PermohonananSKKelahiran::create($dbData);
-            return (new PermohonananSKKelahiranResource($permohonan))
+            $permohonan = PermohonanSKKelahiran::create($dbData);
+            return (new PermohonanSKKelahiranResource($permohonan))
                     ->additional(['message' => 'Permohonan SK Kelahiran berhasil diajukan.'])
                     ->response()
                     ->setStatusCode(201);
@@ -56,11 +56,11 @@ class SKKelahiranApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user('sanctum');
-        $permohonan = PermohonananSKKelahiran::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
                                 ->latest()
                                 ->paginate(10);
         
-        return PermohonananSKKelahiranResource::collection($permohonan)
+        return PermohonanSKKelahiranResource::collection($permohonan)
                                  ->additional(['message' => 'Daftar permohonan SK Kelahiran berhasil diambil.'])
                                  ->response(); 
     }
@@ -68,14 +68,14 @@ class SKKelahiranApiController extends Controller
     public function show(Request $request, $id): JsonResponse 
     {
         $user = $request->user('sanctum');
-        $permohonan = PermohonananSKKelahiran::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
                                       ->find($id);
         
         if (!$permohonan) {
             return response()->json(['message' => 'Permohonan SK Kelahiran tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
         }
             
-        return (new PermohonananSKKelahiranResource($permohonan))
+        return (new PermohonanSKKelahiranResource($permohonan))
                        ->additional(['message' => 'Detail permohonan SK Kelahiran berhasil diambil.'])
                        ->response(); 
     }
@@ -83,7 +83,7 @@ class SKKelahiranApiController extends Controller
     public function downloadHasil(Request $request, $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
     {
         $user = $request->user('sanctum');
-        $permohonan = PermohonananSKKelahiran::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
                                       ->where('status', 'selesai') 
                                       ->find($id);
         

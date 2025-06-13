@@ -4,8 +4,6 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -14,9 +12,12 @@ class PermohonanMasuk implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $notifikasi;
+    public array $notifikasi;
 
-    public function __construct($dataNotifikasi)
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(array $dataNotifikasi)
     {
         $this->notifikasi = $dataNotifikasi;
     }
@@ -24,18 +25,23 @@ class PermohonanMasuk implements ShouldBroadcast
     /**
      * Get the channels the event should broadcast on.
      *
-     * @return \Illuminate\Broadcasting\Channel|array
+     * @return array<int, \Illuminate\Broadcasting\Channel>
      */
-    public function broadcastOn()
+    public function broadcastOn(): array
     {
-        // Menyiarkan ke channel privat, hanya untuk petugas yang login
-        return new PrivateChannel('notifikasi-petugas');
+        /**
+         * [PENTING] Menggunakan Channel publik untuk menghindari semua masalah otorisasi
+         * yang telah kita alami. Ini adalah cara paling pasti.
+         */
+        return [
+            new Channel('notifikasi-publik-petugas'),
+        ];
     }
 
     /**
      * Nama event yang akan didengarkan oleh JavaScript.
      */
-    public function broadcastAs()
+    public function broadcastAs(): string
     {
         return 'permohonan.baru';
     }

@@ -1,3 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* resources/css/app.css */
+@import url('https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900');
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import './vendor/sb-admin-2.min.css'; /* Pastikan ini sudah disalin ke resources/css/vendor/ */
+@import 'datatables.net-bs4/css/dataTables.bootstrap4.min.css';
+@import './vendor/custom.css'; /* Jika ada */

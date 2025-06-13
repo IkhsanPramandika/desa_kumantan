@@ -1,24 +1,29 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
 | Broadcast Channels
 |--------------------------------------------------------------------------
-|
-| Here you may register all of the event broadcasting channels that your
-| application supports. The given channel authorization callbacks are
-| used to check if an authenticated user can listen to the channel.
-|
 */
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
+Broadcast::channel('notifikasi-petugas', function (User $user) {
+    
+    Log::info('[AUTH CHANNEL] Memverifikasi izin untuk User ID: ' . $user->id);
 
-// Channel untuk notifikasi petugas yang sudah kita buat sebelumnya
-Broadcast::channel('notifikasi-petugas', function ($user) {
-    // Ganti 'petugas' dengan nama role yang Anda gunakan jika berbeda
-    return $user->hasRole('petugas'); 
+    // [PERBAIKAN FINAL] Kita periksa rolenya dengan sangat spesifik.
+    if ($user->role === 'petugas') {
+        
+        // [PERUBAHAN] Mengembalikan 'true' adalah cara paling sederhana dan
+        // anti gagal untuk memberikan izin. Laravel akan mengurus format response-nya.
+        Log::info('[AUTH CHANNEL] Izin DIBERIKAN untuk User ID: ' . $user->id);
+        return true;
+
+    }
+
+    Log::warning('[AUTH CHANNEL] Izin DITOLAK untuk User ID: ' . $user->id . '. Role bukan "petugas".');
+    return false;
 });

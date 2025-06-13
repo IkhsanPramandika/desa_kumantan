@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKUsaha;
-use App\Http\Requests\Api\Permohonan\sk_usaha\StoreSkUsahaRequest;
+use App\Models\PermohonanSKUsaha;
+use App\Http\Requests\Api\Permohonan\sk_usaha\StoreSKUsahaRequest;
 use App\Http\Resources\Permohonan\sk_usaha\PermohonanSKUsahaResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class SKUsahaApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKUsaha::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKUsaha::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
 
@@ -28,7 +28,7 @@ class SKUsahaApiController extends Controller
     /**
      * Menyimpan permohonan baru dari aplikasi mobile.
      */
-    public function store(StoreSkUsahaRequest $request)
+    public function store(StoreSKUsahaRequest $request)
     {
         $validatedData = $request->validated();
         $user = $request->user();
@@ -49,7 +49,7 @@ class SKUsahaApiController extends Controller
                 }
             }
 
-            $permohonan = PermohonananSKUsaha::create($dbData);
+            $permohonan = PermohonanSKUsaha::create($dbData);
             
             return (new PermohonanSKUsahaResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Usaha berhasil diajukan.'])
@@ -76,7 +76,7 @@ class SKUsahaApiController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKUsaha::where('id', $id)
+        $permohonan = PermohonanSKUsaha::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->firstOrFail();
             
@@ -89,7 +89,7 @@ class SKUsahaApiController extends Controller
     public function downloadHasil(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKUsaha::where('id', $id)
+        $permohonan = PermohonanSKUsaha::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
             ->first();

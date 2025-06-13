@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananSKTidakMampu;
-use App\Http\Requests\Api\Permohonan\sk_tidak_mampu\StoreSkTidakMampuRequest;
+use App\Models\PermohonanSKTidakMampu;
+use App\Http\Requests\Api\Permohonan\sk_tidak_mampu\StoreSKTidakMampuRequest;
 use App\Http\Resources\Permohonan\sk_tidak_mampu\PermohonanSKTidakMampuResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class SKTidakMampuApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKTidakMampu::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKTidakMampu::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
 
@@ -28,7 +28,7 @@ class SKTidakMampuApiController extends Controller
     /**
      * Menyimpan permohonan baru dari aplikasi mobile.
      */
-    public function store(StoreSkTidakMampuRequest $request)
+    public function store(StoreSKTidakMampuRequest $request)
     {
         $validatedData = $request->validated();
         $user = $request->user();
@@ -49,7 +49,7 @@ class SKTidakMampuApiController extends Controller
                 }
             }
 
-            $permohonan = PermohonananSKTidakMampu::create($dbData);
+            $permohonan = PermohonanSKTidakMampu::create($dbData);
             
             return (new PermohonanSKTidakMampuResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Tidak Mampu berhasil diajukan.'])
@@ -76,7 +76,7 @@ class SKTidakMampuApiController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKTidakMampu::where('id', $id)
+        $permohonan = PermohonanSKTidakMampu::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->firstOrFail();
             
@@ -89,7 +89,7 @@ class SKTidakMampuApiController extends Controller
     public function downloadHasil(Request $request, $id)
     {
         $user = $request->user();
-        $permohonan = PermohonananSKTidakMampu::where('id', $id)
+        $permohonan = PermohonanSKTidakMampu::where('id', $id)
             ->where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
             ->first();

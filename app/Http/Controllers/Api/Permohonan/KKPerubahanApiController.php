@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonananKKPerubahanData; // Pastikan nama model benar
-use App\Http\Requests\Api\Permohonan\kk_perubahan\StoreKkPerubahanDataRequest; 
-use App\Http\Resources\Permohonan\kk_perubahan\PermohonananKKPerubahanDataResource;
+use App\Models\PermohonanKKPerubahanData; // Pastikan nama model benar
+use App\Http\Requests\Api\Permohonan\kk_perubahan\StoreKKPerubahanDataRequest; 
+use App\Http\Resources\Permohonan\kk_perubahan\PermohonanKKPerubahanDataResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,74 +18,67 @@ class KKPerubahanApiController extends Controller
 {
     protected $attachmentBaseDir = 'permohonan_kk_perubahan_attachments';
 
-    public function store(StoreKkPerubahanDataRequest $request): JsonResponse
+    /**
+ * Menyimpan permohonan baru dari aplikasi mobile.
+ */
+    public function store(StoreKKPerubahanDataRequest $request) // Pastikan nama Request-nya sesuai
     {
         $validatedData = $request->validated();
-        Log::info('[KK Perubahan Data API - Store] Validasi berhasil.', $validatedData);
+        $user = $request->user();
+        $uploadedFilePaths = [];
 
-        $dbData = $validatedData;
-        
-        $user = $request->user('sanctum');
-        if (!$user) {
-            Log::error('[KK Perubahan Data API - Store] Tidak ada pengguna terautentikasi via Sanctum.');
-            return response()->json(['message' => 'Tidak terautentikasi.'], 401);
-        }
-        $dbData['masyarakat_id'] = $user->id; 
-        $dbData['status'] = 'pending';
-
-        // Ganti 'catatan' dengan 'catatan_pemohon' jika Anda mengubahnya di FormRequest dan Model
-        if (isset($validatedData['catatan'])) {
-             $dbData['catatan_pemohon'] = $validatedData['catatan'];
-             unset($dbData['catatan']); // Hapus 'catatan' agar tidak konflik jika nama kolom di DB adalah 'catatan_pemohon'
-        }
-
-
-        $fileFields = [
-            'file_kk', 
-            'file_ktp', 
-            'surat_pengantar_rt_rw', 
-            'surat_keterangan_pendukung'
-        ];
-        
-        $rulesForStore = (new StoreKkPerubahanDataRequest())->rules();
-
-        foreach ($fileFields as $fileField) {
-            if ($request->hasFile($fileField)) {
-                $path = $request->file($fileField)->store($this->attachmentBaseDir . '/' . $fileField, 'public');
-                $dbData[$fileField] = $path;
-                Log::info('[KK Perubahan Data API - Store] File ' . $fileField . ' disimpan ke: ' . $path);
-            } else {
-                if (isset($rulesForStore[$fileField]) && 
-                    ((is_string($rulesForStore[$fileField]) && str_contains($rulesForStore[$fileField], 'nullable')) ||
-                     (is_array($rulesForStore[$fileField]) && in_array('nullable', $rulesForStore[$fileField])))
-                ) {
-                    if (!array_key_exists($fileField, $dbData)) { 
-                        $dbData[$fileField] = null;
-                    }
-                }
-            }
-        }
-        
         try {
-            $permohonan = PermohonananKKPerubahanData::create($dbData);
-            Log::info('[KK Perubahan Data API - Store] Permohonan berhasil dibuat dengan ID: ' . $permohonan->id);
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
 
-            return (new PermohonananKKPerubahanDataResource($permohonan))
-                    ->additional(['message' => 'Permohonan KK Perubahan Data berhasil diajukan.'])
-                    ->response()
-                    ->setStatusCode(201);
-        } catch (\Exception $e) {
-            Log::error('[KK Perubahan Data API - Store] Gagal menyimpan permohonan: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
-            foreach ($fileFields as $fileField) {
-                if (isset($dbData[$fileField]) && $dbData[$fileField] && Storage::disk('public')->exists($dbData[$fileField])) {
-                    Storage::disk('public')->delete($dbData[$fileField]);
-                    Log::info('[KK Perubahan Data API - Store] Rollback: File ' . $fileField . ' dihapus: ' . $dbData[$fileField]);
+            // Proses upload file (sesuaikan dengan field Anda)
+            $fileFields = ['file_kk_lama', 'file_dokumen_pendukung'];
+            $basePath = 'permohonan_kk_perubahan/lampiran';
+
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $path = $request->file($field)->store($basePath, 'public');
+                    $dbData[$field] = $path;
+                    $uploadedFilePaths[] = $path;
                 }
             }
-            return response()->json(['message' => 'Gagal menyimpan permohonan KK Perubahan Data.', 'error' => $e->getMessage()], 500);
+
+            $permohonan = PermohonanKKPerubahanDataResource::create($dbData); // Pastikan nama Model-nya sesuai
+
+            // ====================================================================
+            // [TAMBAHAN] MEMANGGIL EVENT UNTUK NOTIFIKASI REAL-TIME
+            // ====================================================================
+            try {
+                $dataNotifikasi = [
+                    'jenis_surat' => 'Perubahan Data KK',
+                    'nama_pemohon' => $permohonan->nama_kepala_keluarga, // Sesuaikan dengan field di model Anda
+                    'waktu' => now()->diffForHumans(),
+                    'icon' => 'fas fa-edit text-white',
+                    'bg_color' => 'bg-info',
+                    'url' => route('petugas.permohonan-kk-perubahan-data.show', $permohonan->id) // Pastikan nama route benar
+                ];
+                event(new \App\Events\PermohonanMasuk($dataNotifikasi));
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim event notifikasi Perubahan KK: ' . $e->getMessage());
+            }
+            // ====================================================================
+            
+            return (new PermohonanKKPerubahanDataResource($permohonan)) // Pastikan nama Resource sesuai
+                ->additional(['message' => 'Permohonan Perubahan Data KK berhasil diajukan.'])
+                ->response()
+                ->setStatusCode(201);
+
+        } catch (\Exception $e) {
+            Log::error('[API Perubahan KK - Store] Gagal menyimpan: ' . $e->getMessage());
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }   
+            return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }
-    
     public function index(Request $request): JsonResponse
     {
         $user = $request->user('sanctum');
@@ -93,11 +86,11 @@ class KKPerubahanApiController extends Controller
             return response()->json(['message' => 'Tidak terautentikasi.'], 401);
         }
 
-        $permohonan = PermohonananKKPerubahanData::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
                                 ->latest()
                                 ->paginate(10);
         
-        return PermohonananKKPerubahanDataResource::collection($permohonan)
+        return PermohonanKKPerubahanDataResource::collection($permohonan)
                                  ->additional(['message' => 'Daftar permohonan KK Perubahan Data berhasil diambil.'])
                                  ->response(); 
     }
@@ -109,14 +102,14 @@ class KKPerubahanApiController extends Controller
             return response()->json(['message' => 'Tidak terautentikasi.'], 401);
         }
 
-        $permohonan = PermohonananKKPerubahanData::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
                                       ->find($id);
         
         if (!$permohonan) {
             return response()->json(['message' => 'Permohonan KK Perubahan Data tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
         }
             
-        return (new PermohonananKKPerubahanDataResource($permohonan))
+        return (new PermohonanKKPerubahanDataResource($permohonan))
                        ->additional(['message' => 'Detail permohonan KK Perubahan Data berhasil diambil.'])
                        ->response(); 
     }
@@ -128,7 +121,7 @@ class KKPerubahanApiController extends Controller
             return response()->json(['message' => 'Tidak terautentikasi.'], 401);
         }
 
-        $permohonan = PermohonananKKPerubahanData::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
                                       ->where('status', 'selesai') 
                                       ->find($id);
         

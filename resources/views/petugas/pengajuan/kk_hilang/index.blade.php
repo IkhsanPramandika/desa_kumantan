@@ -58,7 +58,7 @@
                         <tr>
                             <td>{{ $item->id }}</td>
                             <td>
-                                <strong>{{ $item->masyarakat->nama ?? 'N/A' }}</strong><br>
+                                <strong>{{ $item->masyarakat->nama_lengkap ?? 'N/A' }}</strong><br>
                                 <small>NIK: {{ $item->masyarakat->nik ?? 'N/A' }}</small>
                             </td>
                             <td>{{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') }}</td>
