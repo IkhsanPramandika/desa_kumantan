@@ -4,19 +4,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Controller untuk Autentikasi Masyarakat
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Auth\MasyarakatAuthController;
 use App\Http\Controllers\Api\Permohonan\KKBaruApiController;
-use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
 
 // Controller untuk Pengumuman
 
 
 // Controller untuk Permohonan Surat (oleh Masyarakat)
 
-use App\Http\Controllers\Api\Pengumuman\PengumumanApiController; 
+use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
 
-use App\Http\Controllers\Api\Permohonan\SKDomisiliApiController;
 use App\Http\Controllers\Api\Permohonan\KKHilangApiController;
+use App\Http\Controllers\Api\Permohonan\SKDomisiliApiController;
+use App\Http\Controllers\Api\Pengumuman\PengumumanApiController; 
 use App\Http\Controllers\Api\Permohonan\SKAhliWarisApiController;
 use App\Http\Controllers\Api\Permohonan\SKKelahiranApiController;
 use App\Http\Controllers\Api\Permohonan\KKPerubahanApiController; 
@@ -30,21 +31,26 @@ use App\Http\Controllers\Api\Auth\MasyarakatForgotPasswordController;
 // URL akan menjadi /api/pengumuman, /api/pengumuman/{slug}
 
 
-Route::prefix('pengumuman')->name('api.pengumuman.')->group(function () {
-    Route::get('/', [PengumumanApiController::class, 'index'])->name('index');
-    Route::get('/{slug}', [PengumumanApiController::class, 'show'])->name('show');
-});
+    Route::prefix('pengumuman')->name('api.pengumuman.')->group(function () {
+        Route::get('/', [PengumumanApiController::class, 'index'])->name('index');
+        Route::get('/{slug}', [PengumumanApiController::class, 'show'])->name('show');
+    });
 
-// Rute API untuk Autentikasi Masyarakat
-// URL akan menjadi /api/masyarakat/register, /api/masyarakat/login, dst.
-Route::prefix('masyarakat')->name('api.masyarakat.')->group(function () {
-    Route::post('register', [MasyarakatAuthController::class, 'register'])->name('register');
-    Route::post('login', [MasyarakatAuthController::class, 'login'])->name('login');
-    Route::post('forgot-password', [MasyarakatForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-    Route::post('reset-password', [MasyarakatResetPasswordController::class, 'reset'])->name('password.update');
-});
+    // Rute API untuk Autentikasi Masyarakat
+    // URL akan menjadi /api/masyarakat/register, /api/masyarakat/login, dst.
+    Route::prefix('masyarakat')->name('api.masyarakat.')->group(function () {
+        Route::post('register', [MasyarakatAuthController::class, 'register'])->name('register');
+        Route::post('login', [MasyarakatAuthController::class, 'login'])->name('login');
+        Route::post('forgot-password', [MasyarakatForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+        Route::post('reset-password', [MasyarakatResetPasswordController::class, 'reset'])->name('password.update');
+    });
 
- 
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/notifikasi/baca/{id}', [NotificationController::class, 'markAsRead'])->name('notifikasi.read');
+        Route::get('notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
+        Route::get('/notifications/check', [NotificationController::class, 'check']);
+        });
+      
 
 
 // Rute API yang Memerlukan Autentikasi Masyarakat (Sanctum)

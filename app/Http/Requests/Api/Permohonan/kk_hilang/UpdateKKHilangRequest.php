@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Api\Permohonan;
+namespace App\Http\Requests\Api\Permohonan\kk_hilang;
 
 use Illuminate\Foundation\Http\FormRequest;
 

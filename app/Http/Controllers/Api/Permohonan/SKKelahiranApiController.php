@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
+use App\Models\User; 
+use App\Notifications\PermohonanBaru;
+use Illuminate\Support\Facades\Notification;
 
 class SKKelahiranApiController extends Controller 
 {
@@ -29,24 +32,48 @@ class SKKelahiranApiController extends Controller
 
         $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw', 'surat_nikah_orangtua', 'surat_keterangan_kelahiran'];
         
+        // Inisialisasi array untuk melacak file yang diunggah
+        $uploadedFilePaths = [];
+
         foreach ($fileFields as $fileField) {
             if ($request->hasFile($fileField)) {
                 $path = $request->file($fileField)->store($this->attachmentBaseDir . '/' . $fileField, 'public');
                 $dbData[$fileField] = $path;
+                $uploadedFilePaths[$fileField] = $path; // Simpan path untuk rollback
             }
         }
         
         try {
             $permohonan = PermohonanSKKelahiran::create($dbData);
+            
+            // ====================================================================
+            // [TAMBAHAN] Mengirim Notifikasi Universal
+            // ====================================================================
+            try {
+                $semuaPetugas = User::where('role', 'petugas')->get();
+
+                if ($semuaPetugas->isNotEmpty()) {
+                    $jenisSurat = "SK Kelahiran";
+                    $routeName = "petugas.permohonan-sk-kelahiran.show"; 
+
+                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                }
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi untuk SK Kelahiran: ' . $e->getMessage());
+            }
+            // ====================================================================
+
             return (new PermohonanSKKelahiranResource($permohonan))
                     ->additional(['message' => 'Permohonan SK Kelahiran berhasil diajukan.'])
                     ->response()
                     ->setStatusCode(201);
+
         } catch (\Exception $e) {
             Log::error('[SK Kelahiran API - Store] Gagal menyimpan: ' . $e->getMessage());
-            foreach ($fileFields as $fileField) {
-                if (isset($dbData[$fileField]) && $dbData[$fileField] && Storage::disk('public')->exists($dbData[$fileField])) {
-                    Storage::disk('public')->delete($dbData[$fileField]);
+            // Rollback file yang sudah diunggah jika penyimpanan DB gagal
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);

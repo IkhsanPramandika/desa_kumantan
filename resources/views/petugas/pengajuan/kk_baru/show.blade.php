@@ -27,7 +27,7 @@
                 {{-- Menggunakan Definition List <dl> untuk data read-only --}}
                 <dl class="row">
                     <dt class="col-sm-4">Nama Pemohon</dt>
-                    <dd class="col-sm-8">{{ $permohonan->masyarakat->nama ?? 'N/A' }}</dd>
+                    <dd class="col-sm-8">{{ $permohonan->masyarakat->nama_lengkap ?? 'N/A' }}</dd>
 
                     <dt class="col-sm-4">NIK Pemohon</dt>
                     <dd class="col-sm-8">{{ $permohonan->masyarakat->nik ?? 'N/A' }}</dd>

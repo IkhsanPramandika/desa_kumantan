@@ -9,6 +9,9 @@ use App\Http\Resources\Permohonan\sk_usaha\PermohonanSKUsahaResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\User; 
+use App\Notifications\PermohonanBaru; 
+use Illuminate\Support\Facades\Notification;
 
 class SKUsahaApiController extends Controller
 {
@@ -32,13 +35,13 @@ class SKUsahaApiController extends Controller
     {
         $validatedData = $request->validated();
         $user = $request->user();
+        $uploadedFilePaths = [];
 
         try {
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // Proses upload file
             $fileFields = ['file_kk', 'file_ktp'];
             $basePath = 'permohonan_sk_usaha/lampiran';
 
@@ -46,10 +49,28 @@ class SKUsahaApiController extends Controller
                 if ($request->hasFile($field)) {
                     $path = $request->file($field)->store($basePath, 'public');
                     $dbData[$field] = $path;
+                    $uploadedFilePaths[] = $path;
                 }
             }
 
             $permohonan = PermohonanSKUsaha::create($dbData);
+            
+            // ====================================================================
+            // [TAMBAHAN] Mengirim Notifikasi Universal
+            // ====================================================================
+            try {
+                $semuaPetugas = User::where('role', 'petugas')->get();
+
+                if ($semuaPetugas->isNotEmpty()) {
+                    $jenisSurat = "SK Usaha";
+                    $routeName = "petugas.permohonan-sk-usaha.show";
+
+                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                }
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi untuk SK Usaha: ' . $e->getMessage());
+            }
+            // ====================================================================
             
             return (new PermohonanSKUsahaResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Usaha berhasil diajukan.'])
@@ -58,12 +79,9 @@ class SKUsahaApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SK Usaha - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Rollback file yang sudah terupload jika ada error DB
-            if (isset($dbData) && is_array($dbData)) {
-                foreach ($fileFields as $field) {
-                    if (!empty($dbData[$field]) && Storage::disk('public')->exists($dbData[$field])) {
-                        Storage::disk('public')->delete($dbData[$field]);
-                    }
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);

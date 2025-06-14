@@ -5,9 +5,9 @@
         <i class="fa fa-bars"></i>
     </button>
 
-    <!-- Form Pencarian -->
+    <!-- Form Pencarian (tidak diubah) -->
     <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
-        action="<?php echo e(route('search')); ?>" method="GET">
+        action="" method="GET">
         <div class="input-group">
             <input type="text" class="form-control bg-light border-0 small" placeholder="Pencarian ..."
                 aria-label="Search" aria-describedby="basic-addon2" name="query" value="<?php echo e(request('query')); ?>">
@@ -22,22 +22,29 @@
     <!-- Bagian Kanan Navbar -->
     <ul class="navbar-nav ml-auto">
 
-        <!-- Dropdown Notifikasi (Desain Baru) -->
+        <!-- Dropdown Notifikasi (Desain Baru dengan ID yang sudah disesuaikan) -->
         <li class="nav-item dropdown no-arrow mx-1">
             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-bell fa-fw"></i>
-                <span class="badge badge-danger badge-counter" id="notifikasi-counter">
+                
+                
+                <span class="badge badge-danger badge-counter" id="notification-badge" style="display: <?php echo e(auth()->user()->unreadNotifications->count() > 0 ? 'inline' : 'none'); ?>;">
                     <?php echo e(auth()->user()->unreadNotifications->count()); ?>
 
                 </span>
             </a>
+            
             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="alertsDropdown">
-                <h6 class="dropdown-header">
-                    Pusat Notifikasi
+                
+                
+                <h6 class="dropdown-header" id="notification-header-count">
+                    <?php echo e(auth()->user()->unreadNotifications->count()); ?> Notifikasi Baru
                 </h6>
-                <div id="notifikasi-list">
+
+                
+                <div id="notification-dropdown-list">
                     <?php $__empty_1 = true; $__currentLoopData = auth()->user()->unreadNotifications->take(5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notification): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <a href="<?php echo e(route('petugas.notifikasi.read', $notification->id)); ?>" class="dropdown-item d-flex align-items-center">
                             <div class="mr-3">
@@ -68,7 +75,7 @@
         <!-- Divider -->
         <div class="topbar-divider d-none d-sm-block"></div>
 
-        <!-- User Info -->
+        <!-- User Info (tidak diubah) -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -81,22 +88,12 @@
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="#">
-                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Profile
-                </a>
-                <a class="dropdown-item" href="#">
-                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Settings
-                </a>
-                <a class="dropdown-item" href="#">
-                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Activity Log
+                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i> Profile
                 </a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="#"
                     onclick="event.preventDefault(); document.getElementById('logout-form-modal').submit();">
-                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Logout
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i> Logout
                 </a>
                 <form id="logout-form-modal" action="<?php echo e(route('logout')); ?>" method="POST" style="display: none;">
                     <?php echo csrf_field(); ?>
@@ -105,6 +102,5 @@
         </li>
 
     </ul>
-
 </nav>
 <?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/layouts/navbar.blade.php ENDPATH**/ ?>

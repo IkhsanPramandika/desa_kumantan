@@ -4,12 +4,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Dashboord
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Petugas\Dashboard\SearchController;
 use App\Http\Controllers\Petugas\Dashboard\PetugasController;
 use App\Http\Controllers\Petugas\Dashboard\ProfileController;
 use App\Http\Controllers\Petugas\Dashboard\DashboardController;
-use App\Http\Controllers\Petugas\Dashboard\NotificationController;
-use App\Http\Controllers\Petugas\Dashboard\DocumentVerificationController;
 
 // Pengumuman
 use App\Http\Controllers\Petugas\Pengumuman\PengumumanController;
@@ -18,6 +17,7 @@ use App\Http\Controllers\Petugas\Pengumuman\PengumumanController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanKKBaruController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanSKUsahaController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanKKHilangController;
+use App\Http\Controllers\Petugas\Dashboard\DocumentVerificationController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanSKDomisiliController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanSKAhliWarisController;
 use App\Http\Controllers\Petugas\Permohonan\PermohonanSKKelahiranController;
@@ -52,11 +52,14 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     // --- Dashboard ---
     Route::get('/dashboard', [PetugasController::class, 'dashboard'])->name('dashboard');
 
-    // TAMBAHKAN RUTE INI
-   
+   // URL: /petugas/notifications/check (untuk dipanggil JavaScript)
+    Route::get('/notifications/check', [NotificationController::class, 'check'])->name('notifications.check');
+    // URL: /petugas/notifikasi (halaman untuk melihat semua notifikasi)
+    Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
+    // URL: /petugas/notifikasi/baca/{id} (untuk menandai sudah dibaca)
     Route::get('/notifikasi/baca/{id}', [NotificationController::class, 'markAsRead'])->name('notifikasi.read');
-    Route::get('notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
-        
+   
+   
 
     // --- Profile Petugas ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');   

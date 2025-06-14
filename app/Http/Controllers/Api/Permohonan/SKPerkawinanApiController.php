@@ -9,6 +9,10 @@ use App\Http\Resources\Permohonan\sk_perkawinan\PermohonanSKPerkawinanResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification; 
+use App\Models\User;
+use App\Notifications\PermohonanBaru; 
+
 
 class SKPerkawinanApiController extends Controller
 {
@@ -28,17 +32,17 @@ class SKPerkawinanApiController extends Controller
     /**
      * Menyimpan permohonan baru dari aplikasi mobile.
      */
-    public function store(StoreSKPerkawinanRequest $request)
+     public function store(StoreSKPerkawinanRequest $request)
     {
         $validatedData = $request->validated();
         $user = $request->user();
+        $uploadedFilePaths = [];
 
         try {
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // Proses upload file
             $fileFields = [
                 'file_kk', 'file_ktp_mempelai', 'surat_nikah_orang_tua', 
                 'kartu_imunisasi_catin', 'sertifikat_elsimil', 'akta_penceraian'
@@ -49,11 +53,29 @@ class SKPerkawinanApiController extends Controller
                 if ($request->hasFile($field)) {
                     $path = $request->file($field)->store($basePath, 'public');
                     $dbData[$field] = $path;
+                    $uploadedFilePaths[] = $path;
                 }
             }
 
             $permohonan = PermohonanSKPerkawinan::create($dbData);
             
+            // ====================================================================
+            // [TAMBAHAN] Mengirim Notifikasi Universal
+            // ====================================================================
+            try {
+                $semuaPetugas = User::where('role', 'petugas')->get();
+
+                if ($semuaPetugas->isNotEmpty()) {
+                    $jenisSurat = "SK Perkawinan";
+                    $routeName = "petugas.permohonan-sk-perkawinan.show";
+
+                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                }
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi untuk SK Perkawinan: ' . $e->getMessage());
+            }
+            // ====================================================================
+
             return (new PermohonanSKPerkawinanResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Perkawinan berhasil diajukan.'])
                 ->response()
@@ -61,11 +83,9 @@ class SKPerkawinanApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SK Perkawinan - Store] Gagal menyimpan: ' . $e->getMessage());
-            if (isset($dbData) && is_array($dbData)) {
-                foreach ($fileFields as $field) {
-                    if (!empty($dbData[$field]) && Storage::disk('public')->exists($dbData[$field])) {
-                        Storage::disk('public')->delete($dbData[$field]);
-                    }
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);

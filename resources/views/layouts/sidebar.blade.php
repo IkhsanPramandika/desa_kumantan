@@ -1,15 +1,19 @@
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('petugas.dashboard') }}">
-        <div class="sidebar-brand-icon rotate-n-15">
-            <i class="fas fa-laugh-wink"></i>
+  <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('petugas.dashboard') }}">
+        <div class="sidebar-brand-icon">
+            <i class="fas fa-file-signature fa-lg"></i>
         </div>
-        <div class="sidebar-brand-text mx-3 full-text">
-            Desa Kumantan
+
+        <!-- 
+        PERBAIKAN: Teks dipecah menjadi beberapa baris menggunakan <span> 
+        dengan class d-block dari Bootstrap agar setiap span mengambil satu baris baru.
+        -->
+        <div class="sidebar-brand-text mx-2" style="text-align: left;">
+            <span style="font-size: 0.65rem; line-height: 1;">Sistem Informasi</span>
+            <span class="d-block" style="font-size: 0.9rem; line-height: 1; font-weight: bold;">Layanan Desa</span>
+            <span class="d-block" style="font-size: 0.8rem; line-height: 1;">Kumantan</span>
         </div>
-        {{-- <div class="sidebar-brand-text mx-3 short-text">
-            SIL Desa
-        </div> --}}
     </a>
 
     <hr class="sidebar-divider my-0">

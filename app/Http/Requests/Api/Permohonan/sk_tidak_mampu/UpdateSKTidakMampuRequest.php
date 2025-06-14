@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Api\Permohonan;
+namespace App\Http\Requests\Api\Permohonan\sk_tidak_mampu;
 
 use Illuminate\Foundation\Http\FormRequest;
 

@@ -27,7 +27,7 @@
                 
                 <dl class="row">
                     <dt class="col-sm-4">Nama Pemohon</dt>
-                    <dd class="col-sm-8"><?php echo e($permohonan->masyarakat->nama ?? 'N/A'); ?></dd>
+                    <dd class="col-sm-8"><?php echo e($permohonan->masyarakat->nama_lengkap ?? 'N/A'); ?></dd>
 
                     <dt class="col-sm-4">NIK Pemohon</dt>
                     <dd class="col-sm-8"><?php echo e($permohonan->masyarakat->nik ?? 'N/A'); ?></dd>

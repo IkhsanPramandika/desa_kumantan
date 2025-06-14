@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Masyarakat;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PermohonanKKBaru extends Model
 {
@@ -38,8 +39,10 @@ class PermohonanKKBaru extends Model
     /**
      * Relasi ke model Masyarakat.
      */
-    public function masyarakat()
-    {
-        return $this->belongsTo(Masyarakat::class);
-    }
+   public function masyarakat()
+{
+
+ return $this->belongsTo(Masyarakat::class, 'masyarakat_id');
+}
+
 }

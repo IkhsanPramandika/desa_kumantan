@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Api\Permohonan;
+namespace App\Http\Requests\Api\Permohonan\kk_perubahan;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

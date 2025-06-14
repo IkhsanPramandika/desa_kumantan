@@ -12,7 +12,9 @@
     <link href="<?php echo e(asset('sbadmin/css/custom.css')); ?>" rel="stylesheet">
     <link href="<?php echo e(asset('sbadmin/vendor/datatables/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet">
 
-   
+    <meta name="user-id" content="<?php echo e(Auth::check() ? Auth::id() : ''); ?>">
+
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/vendor/app.js']); ?>
     
 </head>
 

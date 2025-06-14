@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonanSKDomisili;
 use App\Http\Requests\Api\Permohonan\sk_domisili\StoreSkDomisiliRequest;
 use App\Http\Resources\Permohonan\sk_domisili\PermohonanSKDomisiliResource;
+use App\Models\PermohonanSKDomisili;
+use App\Models\User; // Tambahkan use statement untuk User
+use App\Notifications\PermohonanBaru; // Tambahkan use statement untuk Notifikasi Universal
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use App\Events\PermohonanMasuk; // <-- 'use' statement ini sudah benar
+use Illuminate\Support\Facades\Notification; // Tambahkan use statement untuk Notification
+use Illuminate\Support\Facades\Storage;
 
 class SKDomisiliApiController extends Controller
 {
@@ -33,7 +35,7 @@ class SKDomisiliApiController extends Controller
     {
         $validatedData = $request->validated();
         $user = $request->user();
-        $uploadedFilePaths = []; // Untuk menyimpan path file yang diupload
+        $uploadedFilePaths = []; 
 
         try {
             $dbData = $validatedData;
@@ -48,30 +50,28 @@ class SKDomisiliApiController extends Controller
                 if ($request->hasFile($field)) {
                     $path = $request->file($field)->store($basePath, 'public');
                     $dbData[$field] = $path;
-                    $uploadedFilePaths[] = $path; // Simpan path untuk rollback jika gagal
+                    $uploadedFilePaths[] = $path;
                 }
             }
 
             $permohonan = PermohonanSKDomisili::create($dbData);
 
             // ====================================================================
-            // [KODE TAMBAHAN] MEMANGGIL EVENT UNTUK NOTIFIKASI REAL-TIME
+            // [PERBAIKAN] Mengganti sistem Event dengan Notifikasi Universal
             // ====================================================================
             try {
-                $dataNotifikasi = [
-                    'jenis_surat' => 'SK Domisili',
-                    'nama_pemohon' => $permohonan->nama_pemohon_atau_lembaga,
-                    'waktu' => now()->diffForHumans(),
-                    'icon' => 'fas fa-home text-white', // Icon yang relevan dengan domisili
-                    'bg_color' => 'bg-primary',         // Warna latar ikon
-                    'url' => route('petugas.permohonan-sk-domisili.show', $permohonan->id)
-                ];
-                // Mengirim event ke antrian (queue)
-                event(new PermohonanMasuk($dataNotifikasi));
+                $semuaPetugas = User::where('role', 'petugas')->get();
+
+                if ($semuaPetugas->isNotEmpty()) {
+                    // Sesuaikan parameter untuk SK Domisili
+                    $jenisSurat = "SK Domisili";
+                    $routeName = "petugas.permohonan-sk-domisili.show"; // Sesuaikan jika nama route Anda berbeda
+
+                    Notification::send($semuaPetugas, new PermohonanBarU($permohonan, $jenisSurat, $routeName));
+                }
             } catch (\Exception $e) {
-                // Jika pengiriman notifikasi gagal, jangan gagalkan seluruh proses.
-                // Cukup catat errornya saja.
-                Log::error('Gagal mengirim event notifikasi SK Domisili: ' . $e->getMessage());
+                // Catat error jika notifikasi gagal, tapi jangan hentikan proses utama
+                Log::error('Gagal mengirim notifikasi untuk SK Domisili: ' . $e->getMessage());
             }
             // ====================================================================
             

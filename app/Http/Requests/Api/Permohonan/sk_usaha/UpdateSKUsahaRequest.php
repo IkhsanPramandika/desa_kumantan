@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Api\Permohonan;
+namespace App\Http\Requests\Api\Permohonan\sk_usaha;
 
 use Illuminate\Foundation\Http\FormRequest;
 

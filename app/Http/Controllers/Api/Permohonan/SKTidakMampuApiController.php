@@ -9,6 +9,9 @@ use App\Http\Resources\Permohonan\sk_tidak_mampu\PermohonanSKTidakMampuResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Notifications\PermohonanBaru; 
+use Illuminate\Support\Facades\Notification; 
 
 class SKTidakMampuApiController extends Controller
 {
@@ -32,13 +35,13 @@ class SKTidakMampuApiController extends Controller
     {
         $validatedData = $request->validated();
         $user = $request->user();
+        $uploadedFilePaths = [];
 
         try {
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // Proses upload file
             $fileFields = ['file_kk', 'file_ktp', 'file_pendukung_lain'];
             $basePath = 'permohonan_sk_tidak_mampu/lampiran';
 
@@ -46,10 +49,28 @@ class SKTidakMampuApiController extends Controller
                 if ($request->hasFile($field)) {
                     $path = $request->file($field)->store($basePath, 'public');
                     $dbData[$field] = $path;
+                    $uploadedFilePaths[] = $path;
                 }
             }
 
             $permohonan = PermohonanSKTidakMampu::create($dbData);
+            
+            // ====================================================================
+            // [TAMBAHAN] Mengirim Notifikasi Universal
+            // ====================================================================
+            try {
+                $semuaPetugas = User::where('role', 'petugas')->get();
+
+                if ($semuaPetugas->isNotEmpty()) {
+                    $jenisSurat = "SK Tidak Mampu";
+                    $routeName = "petugas.permohonan-sk-tidak-mampu.show";
+
+                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                }
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi untuk SKTM: ' . $e->getMessage());
+            }
+            // ====================================================================
             
             return (new PermohonanSKTidakMampuResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Tidak Mampu berhasil diajukan.'])
@@ -58,12 +79,9 @@ class SKTidakMampuApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SKTM - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Rollback file yang sudah terupload jika ada error DB
-            if (isset($dbData) && is_array($dbData)) {
-                foreach ($fileFields as $field) {
-                    if (!empty($dbData[$field]) && Storage::disk('public')->exists($dbData[$field])) {
-                        Storage::disk('public')->delete($dbData[$field]);
-                    }
+            foreach ($uploadedFilePaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
                 }
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);

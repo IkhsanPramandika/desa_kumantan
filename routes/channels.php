@@ -1,29 +1,24 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
 | Broadcast Channels
 |--------------------------------------------------------------------------
+|
+| Di sini Anda mendaftarkan semua channel broadcast event yang didukung
+| oleh aplikasi Anda. Callback otorisasi channel yang diberikan
+| digunakan untuk memeriksa apakah pengguna yang terotentikasi dapat
+| mendengarkan channel tersebut.
+|
 */
 
-Broadcast::channel('notifikasi-petugas', function (User $user) {
-    
-    Log::info('[AUTH CHANNEL] Memverifikasi izin untuk User ID: ' . $user->id);
-
-    // [PERBAIKAN FINAL] Kita periksa rolenya dengan sangat spesifik.
-    if ($user->role === 'petugas') {
-        
-        // [PERUBAHAN] Mengembalikan 'true' adalah cara paling sederhana dan
-        // anti gagal untuk memberikan izin. Laravel akan mengurus format response-nya.
-        Log::info('[AUTH CHANNEL] Izin DIBERIKAN untuk User ID: ' . $user->id);
-        return true;
-
-    }
-
-    Log::warning('[AUTH CHANNEL] Izin DITOLAK untuk User ID: ' . $user->id . '. Role bukan "petugas".');
-    return false;
+// PASTIKAN BLOK KODE INI ADA DAN TIDAK DI DALAM KOMENTAR
+Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+    // Kode ini akan mengizinkan koneksi HANYA JIKA
+    // ID user yang sedang login ($user->id) sama dengan ID
+    // yang diminta di nama channel ({id}).
+    return (int) $user->id === (int) $id;
 });
+

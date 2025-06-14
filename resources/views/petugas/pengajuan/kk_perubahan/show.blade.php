@@ -15,7 +15,7 @@
             <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Informasi Pemohon</h6></div>
             <div class="card-body">
                 <dl class="row">
-                    <dt class="col-sm-4">Nama Pemohon</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->nama ?? 'N/A' }}</dd>
+                    <dt class="col-sm-4">Nama Pemohon</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->nama_lengkap ?? 'N/A' }}</dd>
                     <dt class="col-sm-4">NIK Pemohon</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->nik ?? 'N/A' }}</dd>
                     <dt class="col-sm-4">Tanggal Pengajuan</dt><dd class="col-sm-8">{{ $permohonan->created_at->format('d F Y, H:i') }}</dd>
                 </dl>

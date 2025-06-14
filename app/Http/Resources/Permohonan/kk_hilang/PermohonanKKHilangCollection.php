@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\kk_hilang;
+namespace App\Http\Resources\Permohonan\kk_hilang;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;

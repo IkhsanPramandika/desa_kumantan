@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Permohonan; // Namespace controller
 
 use App\Models\User;
 use App\Notifications\PermohonanKKBaruMasuk;
+use App\Notifications\PermohonanBaru; 
+
 use Illuminate\Support\Facades\Notification;
     
 use Illuminate\Support\Str;
@@ -27,47 +29,37 @@ class KKBaruApiController extends Controller
     /**
  * Menyimpan permohonan baru dari aplikasi mobile.
  */
-public function store(StoreKKBaruRequest $request)
-    {
-        $validatedData = $request->validated();
-        $user = $request->user();
-        $uploadedFilePaths = [];
+    public function store(StoreKKBaruRequest $request)
+        {
+            $validatedData = $request->validated();
+            $user = $request->user();
+            $uploadedFilePaths = [];
 
-        try {
-            $dbData = $validatedData;
-            $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
-
-            // Proses upload file (sesuaikan dengan field Anda)
-            $fileFields = ['file_pengantar_rt_rw', 'file_kk_lama', 'file_ktp', 'file_buku_nikah'];
-            $basePath = 'permohonan_kk_baru/lampiran';
-
-            foreach ($fileFields as $field) {
-                if ($request->hasFile($field)) {
-                    $path = $request->file($field)->store($basePath, 'public');
-                    $dbData[$field] = $path;
-                    $uploadedFilePaths[] = $path;
-                }
-            }
-
-            // Buat entri permohonan di database
-            $permohonan = PermohonanKKBaru::create($dbData);
-
-            // ====================================================================
-            // [MODIFIKASI] KIRIM NOTIFIKASI KE SEMUA PETUGAS
-            // ====================================================================
             try {
-                // Asumsikan semua petugas memiliki role 'petugas'
-                $semuaPetugas = User::where('role', 'petugas')->get();
+                $dbData = $validatedData;
+                $dbData['masyarakat_id'] = $user->id;
+                $dbData['status'] = 'pending';
 
-                if ($semuaPetugas->isNotEmpty()) {
-                    // Mengirim notifikasi ke setiap petugas yang ditemukan
-                    Notification::send($semuaPetugas, new PermohonanKKBaruMasuk($permohonan));
-                } else {
-                    Log::warning('Tidak ada user dengan role "petugas" yang ditemukan untuk dikirim notifikasi.');
-                }
+                // ... proses upload file ...
+
+                $permohonan = PermohonanKKBaru::create($dbData);
+
+                // ====================================================================
+                // [MODIFIKASI] KIRIM NOTIFIKASI UNIVERSAL
+                // ====================================================================
+                try {
+                    $semuaPetugas = User::where('role', 'petugas')->get();
+
+                    if ($semuaPetugas->isNotEmpty()) {
+                        // Membuat instance notifikasi universal dengan parameter yang relevan
+                        $jenisSurat = "KK Baru";
+                        $routeName = "petugas.permohonan-kk-baru.show"; // Sesuaikan dengan nama route Anda di web.php
+
+                        Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                    }
+
             } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi KK Baru: ' . $e->getMessage());
+                Log::error('Gagal mengirim notifikasi universal untuk KK Baru: ' . $e->getMessage());
             }
             // ====================================================================
 

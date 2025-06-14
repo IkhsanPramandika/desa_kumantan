@@ -12,7 +12,9 @@
     <link href="{{ asset('sbadmin/css/custom.css') }}" rel="stylesheet">
     <link href="{{ asset('sbadmin/vendor/datatables/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
 
-   {{-- @include('components.vite-scripts') --}}
+    <meta name="user-id" content="{{ Auth::check() ? Auth::id() : '' }}">
+
+    @vite(['resources/css/app.css', 'resources/js/vendor/app.js'])
     
 </head>
 

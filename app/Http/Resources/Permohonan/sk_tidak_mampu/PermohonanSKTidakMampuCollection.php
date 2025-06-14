@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\sk_tidak_mampu;
+namespace App\Http\Resources\Permohonan\sk_tidak_mampu;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;

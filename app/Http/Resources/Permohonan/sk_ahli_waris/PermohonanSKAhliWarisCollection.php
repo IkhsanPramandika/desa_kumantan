@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\sk_ahli_waris;
+namespace App\Http\Resources\Permohonan\sk_ahli_waris;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;

@@ -48,7 +48,7 @@
                 @endif
             </div>
             <div class="card-body">
-                {{-- PERBAIKAN: Alur aksi disamakan dengan SK Kelahiran --}}
+                {{-- PERBAIKAN: Alur aksi disamakan dengan SK Kelahiran --}}    
                 @if($permohonan->status == 'pending')
                     <p>Periksa lampiran. Jika valid, klik "Verifikasi" untuk melanjutkan.</p>
                     <form action="{{ route('petugas.permohonan-sk-usaha.verifikasi', $permohonan->id) }}" method="POST" class="mb-2">
