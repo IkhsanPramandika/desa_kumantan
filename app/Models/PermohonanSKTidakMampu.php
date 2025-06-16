@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\NomorSuratGenerator;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PermohonanSKTidakMampu extends Model 
 {
-    use HasFactory;
+    use HasFactory,NomorSuratGenerator;
 
     protected $table = 'permohonan_sk_tidak_mampu';
 

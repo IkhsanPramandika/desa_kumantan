@@ -2,62 +2,74 @@
 
 namespace App\Http\Controllers\Api\Permohonan;
 
-use App\Models\User;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use App\Notifications\PermohonanBaru;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Notification;
-use App\Models\PermohonanKKPerubahanData; // Pastikan nama model benar
-use App\Http\Requests\Api\Permohonan\kk_perubahan\StoreKKPerubahanDataRequest; 
+use App\Http\Requests\Api\Permohonan\kk_perubahan\StoreKKPerubahanDataRequest;
 use App\Http\Resources\Permohonan\kk_perubahan\PermohonanKKPerubahanDataResource;
+use App\Models\PermohonanKKPerubahanData;
+use App\Models\User;
+use App\Notifications\PermohonanBaru;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class KKPerubahanApiController extends Controller 
 {
-    protected $attachmentBaseDir = 'permohonan_kk_perubahan_attachments';
-
     /**
- * Menyimpan permohonan baru dari aplikasi mobile.
- */
+     * Menyimpan permohonan baru dari aplikasi mobile.
+     */
     public function store(StoreKKPerubahanDataRequest $request)
-        {
-            $validatedData = $request->validated();
-            $user = $request->user();
-            $uploadedFilePaths = [];
+    {
+        $validatedData = $request->validated();
+        $user = $request->user();
+        $uploadedFilePaths = [];
 
+        try {
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
+
+            // Menambahkan logika untuk menangani upload file lampiran
+            // Asumsi field file berdasarkan standar permohonan perubahan data. Sesuaikan jika perlu.
+            $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw','surat_keterangan_pendukung'];
+            $basePath = 'permohonan_kk_perubahan_data/lampiran';
+
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
+                    $filePath = $basePath . '/' . $fileName;
+                    
+                    Storage::disk('public')->put($filePath, file_get_contents($file));
+                    
+                    $dbData[$field] = $filePath; 
+                    $uploadedFilePaths[] = $filePath;
+                }
+            }
+
+            $permohonan = PermohonanKKPerubahanData::create($dbData);
+
+            // ====================================================================
+            // [TAMBAHAN] Mengirim Notifikasi Universal ke Petugas
+            // ====================================================================
             try {
-                $dbData = $validatedData;
-                $dbData['masyarakat_id'] = $user->id;
-                $dbData['status'] = 'pending';
+                $semuaPetugas = User::where('role', 'petugas')->get();
 
-                // ... proses upload file ...
+                if ($semuaPetugas->isNotEmpty()) {
+                    // PERBAIKAN: Sesuaikan parameter untuk Permohonan Perubahan Data KK
+                    $jenisSurat = "Perubahan Data KK";
+                    $routeName = "petugas.permohonan-kk-perubahan.show"; // Nama route disesuaikan
 
-                $permohonan = PermohonanKKPerubahanData::create($dbData);
-
-                // ====================================================================
-                // [MODIFIKASI] KIRIM NOTIFIKASI UNIVERSAL
-                // ====================================================================
-                try {
-                    $semuaPetugas = User::where('role', 'petugas')->get();
-
-                    if ($semuaPetugas->isNotEmpty()) {
-                        // Membuat instance notifikasi universal dengan parameter yang relevan
-                        $jenisSurat = "KK Perubahan";
-                        $routeName = "petugas.permohonan-kk-baru.show"; // Sesuaikan dengan nama route Anda di web.php
-
-                        Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
-                    }
+                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                }
             } catch (\Exception $e) {
-                Log::error('Gagal mengirim event notifikasi Perubahan KK: ' . $e->getMessage());
+                Log::error('Gagal mengirim notifikasi untuk Perubahan KK: ' . $e->getMessage());
             }
             // ====================================================================
             
-            return (new PermohonanKKPerubahanDataResource($permohonan)) // Pastikan nama Resource sesuai
+            return (new PermohonanKKPerubahanDataResource($permohonan))
                 ->additional(['message' => 'Permohonan Perubahan Data KK berhasil diajukan.'])
                 ->response()
                 ->setStatusCode(201);
@@ -68,10 +80,14 @@ class KKPerubahanApiController extends Controller
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
                 }
-            }   
+            }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Menampilkan daftar permohonan milik pengguna yang terotentikasi.
+     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user('sanctum');
@@ -80,14 +96,17 @@ class KKPerubahanApiController extends Controller
         }
 
         $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
-                                ->latest()
-                                ->paginate(10);
+            ->latest()
+            ->paginate(10);
         
         return PermohonanKKPerubahanDataResource::collection($permohonan)
-                                 ->additional(['message' => 'Daftar permohonan KK Perubahan Data berhasil diambil.'])
-                                 ->response(); 
+            ->additional(['message' => 'Daftar permohonan KK Perubahan Data berhasil diambil.'])
+            ->response(); 
     }
 
+    /**
+     * Menampilkan detail satu permohonan.
+     */
     public function show(Request $request, $id): JsonResponse 
     {
         $user = $request->user('sanctum');
@@ -96,18 +115,21 @@ class KKPerubahanApiController extends Controller
         }
 
         $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
-                                      ->find($id);
+            ->find($id);
         
         if (!$permohonan) {
             return response()->json(['message' => 'Permohonan KK Perubahan Data tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
         }
             
         return (new PermohonanKKPerubahanDataResource($permohonan))
-                       ->additional(['message' => 'Detail permohonan KK Perubahan Data berhasil diambil.'])
-                       ->response(); 
+            ->additional(['message' => 'Detail permohonan KK Perubahan Data berhasil diambil.'])
+            ->response(); 
     }
 
-    public function downloadHasil(Request $request, $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+    /**
+     * Mengunduh file hasil akhir untuk pengguna yang terotentikasi.
+     */
+    public function downloadHasil(Request $request, $id)
     {
         $user = $request->user('sanctum');
         if (!$user) {
@@ -115,33 +137,20 @@ class KKPerubahanApiController extends Controller
         }
 
         $permohonan = PermohonanKKPerubahanData::where('masyarakat_id', $user->id)
-                                      ->where('status', 'selesai') 
-                                      ->find($id);
+            ->where('status', 'selesai')
+            ->find($id);
         
         if (!$permohonan) {
             return response()->json(['message' => 'Permohonan tidak ditemukan, belum selesai, atau Anda tidak berhak mengaksesnya.'], 404);
         }
 
         if ($permohonan->file_hasil_akhir) {
-            $pathRelativeToPublicDisk = '';
-            if (Str::startsWith($permohonan->file_hasil_akhir, Storage::url(''))) {
-                 $pathRelativeToPublicDisk = substr($permohonan->file_hasil_akhir, strlen(Storage::url('')));
-            } else if (Str::startsWith($permohonan->file_hasil_akhir, '/storage/')) { 
-                 $pathRelativeToPublicDisk = substr($permohonan->file_hasil_akhir, strlen('/storage/'));
-            } else {
-                 Log::error('[KK Perubahan Data API - Download] Format file_hasil_akhir tidak dikenal: ' . $permohonan->file_hasil_akhir . ' untuk ID: ' . $id);
-                 return response()->json(['message' => 'Format path file hasil akhir tidak dikenal.'], 400);
-            }
-
-            if (Storage::disk('public')->exists($pathRelativeToPublicDisk)) {
-                Log::info('[KK Perubahan Data API - Download] File ditemukan: ' . $pathRelativeToPublicDisk . ' pada disk public.');
-                return Storage::disk('public')->download($pathRelativeToPublicDisk);
-            } else {
-                Log::error('[KK Perubahan Data API - Download] File tidak ditemukan di disk public: ' . $pathRelativeToPublicDisk . ' untuk ID: ' . $id .'. Path absolut dicek: ' . Storage::disk('public')->path($pathRelativeToPublicDisk));
+            $path = $permohonan->file_hasil_akhir;
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->download($path);
             }
         }
         
-        Log::warning('[KK Perubahan Data API - Download] File hasil akhir tidak tersedia untuk permohonan ID: ' . $id);
         return response()->json(['message' => 'File hasil akhir tidak tersedia untuk permohonan ini.'], 404);
     }
 }

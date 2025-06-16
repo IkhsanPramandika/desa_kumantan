@@ -36,7 +36,7 @@
                 <hr>
                 <h5 class="mt-4">Catatan dari Pemohon</h5>
                 
-                <p><em><?php echo e($permohonan->catatan ?? 'Tidak ada catatan.'); ?></em></p> 
+                <p><em><?php echo e($permohonan->catatan_pemohon ?? 'Tidak ada catatan.'); ?></em></p> 
             </div>
         </div>
     </div>

@@ -27,7 +27,7 @@ class StoreKKPerubahanDataRequest extends FormRequest
             'file_ktp'                      => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // KTP Pemohon (salah satu anggota KK)
             'surat_pengantar_rt_rw'         => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'surat_keterangan_pendukung'    => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // Dokumen pendukung perubahan
-            'catatan'                       => 'nullable|string|max:1000', // Atau 'catatan_pemohon'
+            'catatan_pemohon'                       => 'nullable|string|max:1000', // Atau 'catatan_pemohon'
             // Tambahkan validasi untuk field data teks lain jika ada, misal:
             // 'detail_perubahan_yang_diinginkan' => 'required|string|max:1000', 
         ];

@@ -2,21 +2,20 @@
 
 namespace App\Http\Controllers\Api\Permohonan;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-
-use App\Events\PermohonanMasuk;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Notifications\PermohonanBaru;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Notification;
 use App\Http\Requests\Api\Permohonan\kk_hilang\StoreKKHilangRequest;
-use App\Models\PermohonanKKHilang; // [PERBAIKAN] Nama disesuaikan (tanpa typo 'nan')
-use App\Http\Resources\Permohonan\kk_hilang\PermohonanKKHilangResource; // [PERBAIKAN] Nama disesuaikan
+use App\Http\Resources\Permohonan\kk_hilang\PermohonanKKHilangResource;
+use App\Models\PermohonanKKHilang;
+use App\Models\User;
+use App\Notifications\PermohonanBaru;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
-class KKHilangApiController extends Controller // [PERBAIKAN] Nama class disesuaikan dengan standar PSR-4
+class KKHilangApiController extends Controller
 {
     /**
      * Menampilkan daftar permohonan milik pengguna yang terotentikasi.
@@ -46,26 +45,42 @@ class KKHilangApiController extends Controller // [PERBAIKAN] Nama class disesua
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // ... proses upload file ...
+            // Menambahkan logika untuk menangani upload file lampiran
+            $fileFields = ['surat_pengantar_rt_rw', 'surat_keterangan_hilang_kepolisian'];
+            $basePath = 'permohonan_kk_hilang/lampiran';
+
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
+                    $filePath = $basePath . '/' . $fileName;
+                    
+                    Storage::disk('public')->put($filePath, file_get_contents($file));
+                    
+                    $dbData[$field] = $filePath; 
+                    $uploadedFilePaths[] = $filePath;
+                }
+            }
 
             $permohonan = PermohonanKKHilang::create($dbData);
 
             // ====================================================================
-            // [MODIFIKASI] KIRIM NOTIFIKASI UNIVERSAL
+            // [TAMBAHAN] Mengirim Notifikasi Universal ke Petugas
             // ====================================================================
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
 
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Membuat instance notifikasi universal dengan parameter yang relevan
-                    $jenisSurat = "KK HILANG";
-                    $routeName = "petugas.permohonan-kk-hilang.show"; // Sesuaikan dengan nama route Anda di web.php
+                    // Sesuaikan parameter untuk Permohonan KK Hilang
+                    $jenisSurat = "KK Hilang";
+                    $routeName = "petugas.permohonan-kk-hilang.show";
 
                     Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
                 }
             } catch (\Exception $e) {
-                Log::error('Gagal mengirim event notifikasi KK Hilang: ' . $e->getMessage());
+                Log::error('Gagal mengirim notifikasi untuk KK Hilang: ' . $e->getMessage());
             }
+            // ====================================================================
             
             return (new PermohonanKKHilangResource($permohonan))
                 ->additional(['message' => 'Permohonan KK Hilang berhasil diajukan.'])
@@ -82,12 +97,12 @@ class KKHilangApiController extends Controller // [PERBAIKAN] Nama class disesua
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }
+
     /**
      * Menampilkan detail satu permohonan.
      */
     public function show(Request $request, $id): JsonResponse 
     {
-        // [PERBAIKAN] Query dilakukan ke Model, bukan ke Resource
         $permohonan = PermohonanKKHilang::where('id', $id)
             ->where('masyarakat_id', $request->user()->id)
             ->first();
@@ -104,9 +119,8 @@ class KKHilangApiController extends Controller // [PERBAIKAN] Nama class disesua
     /**
      * Mengunduh file hasil akhir untuk pengguna yang terotentikasi.
      */
-    public function downloadHasil(Request $request, $id) // Tipe return bisa bervariasi
+    public function downloadHasil(Request $request, $id)
     {
-        // [PERBAIKAN] Query dilakukan ke Model, bukan ke Resource
         $permohonan = PermohonanKKHilang::where('id', $id)
             ->where('masyarakat_id', $request->user()->id)
             ->first();

@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Masyarakat;
+use App\Traits\NomorSuratGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PermohonanKKBaru extends Model
 {
-    use HasFactory;
+    use HasFactory,NomorSuratGenerator;
 
     protected $table = 'permohonan_kk_baru';
 
@@ -20,7 +21,7 @@ class PermohonanKKBaru extends Model
         'buku_nikah_akta_cerai',
         'surat_pindah_datang',
         'ijazah_terakhir',
-        'catatan_pemohon', // Mengganti 'catatan' menjadi lebih deskriptif
+        'catatan_pemohon',
         'status',
         'file_hasil_akhir',
         'tanggal_selesai_proses',

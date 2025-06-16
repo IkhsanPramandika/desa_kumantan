@@ -25,7 +25,7 @@ class StoreKkHilangRequest extends FormRequest
         return [
             'surat_pengantar_rt_rw'             => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'surat_keterangan_hilang_kepolisian'=> 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'catatan'                           => 'nullable|string|max:1000',
+            'catatan_pemohon'                           => 'nullable|string|max:1000',
             // Tambahkan validasi untuk field lain yang mungkin dikirim dari form Flutter jika ada
             // misalnya, jika ada KTP atau KK lama yang perlu di-upload sebagai bukti tambahan:
             // 'file_ktp_pemohon' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',

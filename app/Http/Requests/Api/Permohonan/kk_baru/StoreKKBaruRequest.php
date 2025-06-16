@@ -35,16 +35,21 @@ class StoreKKBaruRequest extends FormRequest
             'buku_nikah_akta_cerai'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, tergantung kasus
             'surat_pindah_datang'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, jika ada anggota yang pindah masuk
             'ijazah_terakhir'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, mungkin untuk data pendidikan anggota keluarga
-            'catatan'                 => 'nullable|string|max:1000', // Catatan dari pemohon
-
-            // Tambahkan validasi untuk field data teks lain yang mungkin dikirim dari Flutter, contoh:
-            // 'nama_kepala_keluarga' => 'required|string|max:255',
-            // 'alamat_lengkap' => 'required|string|max:500',
-            // 'rt' => 'required|string|max:3',
-            // 'rw' => 'required|string|max:3',
-            // 'kode_pos' => 'nullable|string|max:10',
-            // 'alasan_permohonan' => 'nullable|string|max:255', // Jika ada field ini di form
+            'catatan_pemohon'         => 'nullable|string|max:1000', // Catatan dari pemohon
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        // Periksa apakah request dari mobile app mengirim field bernama 'catatan'
+        if ($this->has('catatan')) {
+            // Jika ada, buat field baru bernama 'catatan_pemohon' dengan isi yang sama.
+            // Dan hapus field 'catatan' yang lama agar tidak ada duplikasi.
+            $this->merge([
+                'catatan_pemohon' => $this->input('catatan'),
+            ]);
+            $this->request->remove('catatan');
+        }
     }
 
     /**
@@ -52,6 +57,8 @@ class StoreKKBaruRequest extends FormRequest
      *
      * @return array
      */
+
+     
     public function messages(): array
     {
         return [

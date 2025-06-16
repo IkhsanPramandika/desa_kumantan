@@ -7,11 +7,12 @@ use App\Http\Requests\Api\Permohonan\sk_ahli_waris\StoreSKAhliWarisRequest;
 use App\Http\Resources\Permohonan\sk_ahli_waris\PermohonanSKAhliWarisResource;
 use App\Models\PermohonanSKAhliWaris;
 use App\Models\User;
-use App\Notifications\PermohonanBaru; // Pastikan use statement ini ada
+use App\Notifications\PermohonanBaru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SKAhliWarisApiController extends Controller
 {
@@ -42,7 +43,7 @@ class SKAhliWarisApiController extends Controller
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // PERBAIKAN: Menambahkan logika upload file yang hilang
+            // Menangani upload file lampiran
             $fileFields = [
                 'file_ktp_pemohon',
                 'file_kk_pemohon',
@@ -55,32 +56,33 @@ class SKAhliWarisApiController extends Controller
 
             foreach ($fileFields as $field) {
                 if ($request->hasFile($field)) {
-                    $path = $request->file($field)->store($basePath, 'public');
-                    $dbData[$field] = $path;
-                    $uploadedFilePaths[] = $path;
+                    $file = $request->file($field);
+                    $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
+                    $filePath = $basePath . '/' . $fileName;
+                    
+                    Storage::disk('public')->put($filePath, file_get_contents($file));
+                    
+                    $dbData[$field] = $filePath; 
+                    $uploadedFilePaths[] = $filePath;
                 }
             }
             
             $permohonan = PermohonanSKAhliWaris::create($dbData);
 
-            // ====================================================================
-            // [MODIFIKASI] KIRIM NOTIFIKASI UNIVERSAL
-            // ====================================================================
+            // --- KIRIM NOTIFIKASI UNIVERSAL KE PETUGAS ---
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
 
                 if ($semuaPetugas->isNotEmpty()) {
-                    // PERBAIKAN: Sesuaikan parameter untuk SK Ahli Waris
                     $jenisSurat = "SK Ahli Waris";
-                    $routeName = "petugas.permohonan-sk-ahli-waris.show"; // Sesuaikan jika nama route Anda berbeda
+                    $routeName = "petugas.permohonan-sk-ahli-waris.show";
 
                     Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
                 }
             } catch (\Exception $e) {
-                // Log jika pengiriman notifikasi gagal, tapi jangan hentikan proses utama
                 Log::error('Gagal mengirim notifikasi untuk SK Ahli Waris: ' . $e->getMessage());
             }
-            // ====================================================================
+            // --- END NOTIFIKASI ---
 
             return (new PermohonanSKAhliWarisResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Ahli Waris berhasil diajukan.'])
@@ -88,7 +90,6 @@ class SKAhliWarisApiController extends Controller
                 ->setStatusCode(201);
 
         } catch (\Exception $e) {
-            // PERBAIKAN: Error handling untuk menghapus file jika penyimpanan gagal
             Log::error('[API SK Ahli Waris - Store] Gagal menyimpan: ' . $e->getMessage());
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {

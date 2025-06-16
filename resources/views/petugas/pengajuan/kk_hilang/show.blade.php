@@ -36,7 +36,7 @@
                 <hr>
                 <h5 class="mt-4">Catatan dari Pemohon</h5>
                 {{-- Menggunakan 'catatan' sesuai model yang diberikan, atau 'catatan_pemohon' jika Anda ingin konsisten --}}
-                <p><em>{{ $permohonan->catatan ?? 'Tidak ada catatan.' }}</em></p> 
+                <p><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></p> 
             </div>
         </div>
     </div>
