@@ -6,15 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title><?php echo $__env->yieldContent('title', 'Sistem Informasi Layanan Desa Kumantan'); ?></title>
 
-    <link href="<?php echo e(asset('sbadmin/vendor/fontawesome-free/css/all.min.css')); ?>" rel="stylesheet">
+
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
-    <link href="<?php echo e(asset('sbadmin/css/sb-admin-2.min.css')); ?>" rel="stylesheet">
-    <link href="<?php echo e(asset('sbadmin/css/custom.css')); ?>" rel="stylesheet">
-    <link href="<?php echo e(asset('sbadmin/vendor/datatables/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet">
+    
 
     <meta name="user-id" content="<?php echo e(Auth::check() ? Auth::id() : ''); ?>">
 
-    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/vendor/app.js']); ?>
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     
 </head>
 
@@ -34,17 +32,15 @@
             </div>
         </div>
     </div>
-
-    <script src="<?php echo e(asset('sbadmin/vendor/jquery/jquery.min.js')); ?>"></script>
-    <script src="<?php echo e(asset('sbadmin/vendor/bootstrap/js/bootstrap.bundle.min.js')); ?>"></script>
-    <script src="<?php echo e(asset('sbadmin/vendor/jquery-easing/jquery.easing.min.js')); ?>"></script>
-    <script src="<?php echo e(asset('sbadmin/js/sb-admin-2.min.js')); ?>"></script>
-
-    <script src="<?php echo e(asset('sbadmin/vendor/datatables/jquery.dataTables.min.js')); ?>"></script>
-    <script src="<?php echo e(asset('sbadmin/vendor/datatables/dataTables.bootstrap4.min.js')); ?>"></script>
-    <script src="<?php echo e(asset('sbadmin/js/demo/datatables-demo.js')); ?>"></script> 
-
     <?php echo $__env->yieldPushContent('scripts'); ?>
+     <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+    
+    <?php echo app('Illuminate\Foundation\Vite')('resources/js/app.js'); ?>
 
 </body>
 </html><?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/layouts/app.blade.php ENDPATH**/ ?>

@@ -28,7 +28,7 @@ class PermohonanKKBaruController extends Controller
             $query->where('status', $request->status);
         }
 
-        $data = $query->paginate(10)->withQueryString();
+        $data = $query->get(); // <-- Ubah paginate() menjadi get()
         
         return view('petugas.pengajuan.kk_baru.index', compact('data'));
     }

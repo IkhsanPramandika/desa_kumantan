@@ -64,17 +64,9 @@
                     <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#tolakModal"><i class="fas fa-times"></i> Tolak</button>
                 
                 @elseif($permohonan->status == 'selesai')
-                    <p>Surat telah dibuat. Anda bisa mengunduhnya atau membagikan link publik.</p>
-                    <a href="{{ route('petugas.permohonan-sk-tidak-mampu.download-final', $permohonan->id) }}" class="btn btn-success btn-block mb-2"><i class="fas fa-download"></i> Unduh Surat (Petugas)</a>
-                    <div class="form-group">
-                        <label>Link Download Publik:</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" value="{{ route('public.download.sk-tidak-mampu', $permohonan->id) }}" readonly id="publicLink">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" onclick="copyLink()">Salin</button>
-                            </div>
-                        </div>
-                    </div>
+                    <p>Surat telah dibuat pada {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->format('d F Y, H:i') : '' }}.</p>
+                    <a href="{{ route('petugas.permohonan-sk-tidak-mampu.download-final', $permohonan->id) }}" class="btn btn-success btn-block mb-2"><i class="fas fa-download"></i> Unduh Surat</a>
+                
                 
                 @elseif($permohonan->status == 'ditolak')
                     <p>Permohonan ditolak dengan alasan:</p>

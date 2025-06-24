@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
-use App\Traits\NomorSuratGenerator;
-use Illuminate\Database\Eloquent\Model;
+use App\Interfaces\PermohonanInterface; // <-- Pastikan ini ada
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class PermohonanKKPerubahanData  extends Model
+/**
+ * @property int $id
+ * @property-read \App\Models\Masyarakat $masyarakat
+ */
+class PermohonanKKPerubahanData extends Model implements PermohonanInterface // <-- Pastikan ini ada
 {
-    use HasFactory,NomorSuratGenerator;
-    
+    use HasFactory;
+
     protected $table = 'permohonan_kk_perubahan_data';
 
     protected $fillable = [
@@ -27,20 +31,34 @@ class PermohonanKKPerubahanData  extends Model
         'catatan_penolakan',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'tanggal_selesai_proses' => 'datetime',
-    ];
-
-    /**
-     * Relasi ke model Masyarakat.
-     */
+    // Pastikan Anda punya relasi ke masyarakat
     public function masyarakat()
     {
         return $this->belongsTo(Masyarakat::class);
+    }
+
+    // ===================================================================
+    // [INI BAGIAN PENTING] IMPLEMENTASI METODE DARI INTERFACE
+    // ===================================================================
+
+    public function getJudulNotifikasi(): string
+    {
+        return "Perubahan Data KK"; 
+    }
+
+    public function getPemohon(): Masyarakat
+    {
+        return $this->masyarakat;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getRouteTujuan(): string
+    {
+        // Pastikan nama route ini benar sesuai dengan file routes/web.php Anda
+        return route('petugas.permohonan-kk-perubahan.show', $this->id);
     }
 }

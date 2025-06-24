@@ -108,14 +108,11 @@
                     
                     {{-- Kolom Informasi Utama --}}
                     <div class="col pl-3">
-                        <h6 class="font-weight-bold text-dark mb-0">
-                            Permohonan {{ $notif->data['jenis_surat'] ?? 'Tidak Diketahui' }}
-                            {{-- Tautan ini membuat seluruh kartu bisa di-klik --}}
+                        {{-- [PERBAIKAN] Langsung tampilkan pesan lengkap dari data notifikasi --}}
+                        <div class="font-weight-bold text-dark mb-0">
+                            {{ $notif->data['pesan'] ?? 'Notifikasi baru.' }}
                             <a href="{{ $notif->data['url'] ?? '#' }}" class="stretched-link"></a>
-                        </h6>
-                        <small class="text-muted">
-                            Oleh <strong>{{ $notif->data['nama_pemohon'] ?? 'Warga' }}</strong>
-                        </small>
+                        </div>
                     </div>
 
                     {{-- Kolom Status dan Waktu --}}

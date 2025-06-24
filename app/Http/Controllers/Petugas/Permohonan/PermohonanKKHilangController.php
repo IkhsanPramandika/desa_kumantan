@@ -57,7 +57,7 @@ class PermohonanKKHilangController extends Controller
         
         $title = "Permohonan Ditolak";
         $message = "Maaf, permohonan KK Hilang Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
-        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
+        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan));
         
         return redirect()->route('petugas.permohonan-kk-hilang.show', $id)->with('error', 'Permohonan telah ditolak.');
     }
@@ -88,10 +88,15 @@ class PermohonanKKHilangController extends Controller
 
     public function downloadFinal($id)
     {
-        $permohonan = PermohonanKKHilang::findOrFail($id);
+        
+        $permohonan = PermohonanKKHilang::where('status', 'selesai')->findOrFail($id);
+
         if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
             return Storage::disk('public')->download($permohonan->file_hasil_akhir);
         }
-        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan.');
+
+        // Redirect ini sudah benar jika file tidak ada
+        return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan atau permohonan belum selesai.');
+
     }
 }

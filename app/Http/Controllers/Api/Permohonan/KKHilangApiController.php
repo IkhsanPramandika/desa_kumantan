@@ -18,21 +18,7 @@ use Illuminate\Support\Str;
 class KKHilangApiController extends Controller
 {
     /**
-     * Menampilkan daftar permohonan milik pengguna yang terotentikasi.
-     */
-    public function index(Request $request): JsonResponse
-    {
-        $permohonan = PermohonanKKHilang::where('masyarakat_id', $request->user()->id)
-            ->latest()
-            ->paginate(10);
-        
-        return PermohonanKKHilangResource::collection($permohonan)
-            ->additional(['message' => 'Daftar permohonan KK Hilang berhasil diambil.'])
-            ->response();
-    }
-
-    /**
-     * Menyimpan permohonan baru dari aplikasi mobile.
+     * Menyimpan permohonan KK Hilang dari aplikasi mobile.
      */
     public function store(StoreKKHilangRequest $request)
     {
@@ -41,11 +27,13 @@ class KKHilangApiController extends Controller
         $uploadedFilePaths = [];
 
         try {
-            $dbData = $validatedData;
-            $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
+            $dbData = [
+                'masyarakat_id' => $user->id,
+                'status' => 'pending',
+                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
+            ];
 
-            // Menambahkan logika untuk menangani upload file lampiran
+            // Sesuaikan file-file yang dibutuhkan untuk Permohonan KK Hilang
             $fileFields = ['surat_pengantar_rt_rw', 'surat_keterangan_hilang_kepolisian'];
             $basePath = 'permohonan_kk_hilang/lampiran';
 
@@ -57,38 +45,36 @@ class KKHilangApiController extends Controller
                     
                     Storage::disk('public')->put($filePath, file_get_contents($file));
                     
-                    $dbData[$field] = $filePath; 
+                    $dbData[$field] = $filePath;
                     $uploadedFilePaths[] = $filePath;
                 }
             }
 
             $permohonan = PermohonanKKHilang::create($dbData);
 
-            // ====================================================================
-            // [TAMBAHAN] Mengirim Notifikasi Universal ke Petugas
-            // ====================================================================
+            // Mengirim notifikasi ke petugas
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
-
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Sesuaikan parameter untuk Permohonan KK Hilang
-                    $jenisSurat = "KK Hilang";
-                    $routeName = "petugas.permohonan-kk-hilang.show";
+                    $title = $permohonan->getJudulNotifikasi();
+                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                    $url = $permohonan->getRouteTujuan();
+                    $permohonanId = $permohonan->getId();
 
-                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                    $notification = (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit();
+                    Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk KK Hilang: ' . $e->getMessage());
             }
-            // ====================================================================
-            
+
             return (new PermohonanKKHilangResource($permohonan))
                 ->additional(['message' => 'Permohonan KK Hilang berhasil diajukan.'])
-                ->response()
-                ->setStatusCode(201);
+                ->response()->setStatusCode(201);
 
         } catch (\Exception $e) {
             Log::error('[API KK Hilang - Store] Gagal menyimpan: ' . $e->getMessage());
+            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -99,43 +85,36 @@ class KKHilangApiController extends Controller
     }
 
     /**
+     * Menampilkan daftar permohonan milik pengguna.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $permohonan = PermohonanKKHilang::where('masyarakat_id', $user->id)
+            ->latest()
+            ->paginate(10);
+        
+        return PermohonanKKHilangResource::collection($permohonan)
+            ->additional(['message' => 'Daftar permohonan KK Hilang berhasil diambil.'])
+            ->response();
+    }
+
+    /**
      * Menampilkan detail satu permohonan.
      */
-    public function show(Request $request, $id): JsonResponse 
+    public function show(Request $request, $id): JsonResponse
     {
-        $permohonan = PermohonanKKHilang::where('id', $id)
-            ->where('masyarakat_id', $request->user()->id)
+        $user = $request->user();
+        $permohonan = PermohonanKKHilang::where('masyarakat_id', $user->id)
+            ->where('id', $id)
             ->first();
-        
+
         if (!$permohonan) {
-            return response()->json(['message' => 'Permohonan tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
+            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
         }
             
         return (new PermohonanKKHilangResource($permohonan))
             ->additional(['message' => 'Detail permohonan KK Hilang berhasil diambil.'])
             ->response();
-    }
-
-    /**
-     * Mengunduh file hasil akhir untuk pengguna yang terotentikasi.
-     */
-    public function downloadHasil(Request $request, $id)
-    {
-        $permohonan = PermohonanKKHilang::where('id', $id)
-            ->where('masyarakat_id', $request->user()->id)
-            ->first();
-
-        if (!$permohonan || $permohonan->status !== 'selesai' || !$permohonan->file_hasil_akhir) {
-            return response()->json(['message' => 'Dokumen tidak ditemukan, belum selesai, atau file tidak tersedia.'], 404);
-        }
-        
-        $filePath = $permohonan->file_hasil_akhir;
-
-        if (Storage::disk('public')->exists($filePath)) {
-            return Storage::disk('public')->download($filePath);
-        }
-
-        Log::error('[KK Hilang API - Download] File hasil akhir tidak ditemukan di storage untuk ID: ' . $id .'. Path yang dicari: ' . $filePath);
-        return response()->json(['message' => 'File fisik tidak ditemukan di server.'], 404);
     }
 }

@@ -57,7 +57,7 @@
                         <tr>
                             <td><?php echo e($item->id); ?></td>
                             <td>
-                                <strong><?php echo e($item->masyarakat->nama ?? 'N/A'); ?></strong><br>
+                                <strong><?php echo e($item->masyarakat->nama_lengkap ?? 'N/A'); ?></strong><br>
                                 <small>NIK: <?php echo e($item->masyarakat->nik ?? 'N/A'); ?></small>
                             </td>
                             <td><?php echo e(\Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i')); ?></td>

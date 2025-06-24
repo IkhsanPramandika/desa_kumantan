@@ -3,14 +3,21 @@
 namespace App\Models;
 
 use App\Models\Masyarakat;
+use App\Interfaces\PermohonanInterface;
 use App\Traits\NomorSuratGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class PermohonanKKBaru extends Model
+/**
+ * @property int $id
+ * @property-read \App\Models\Masyarakat $masyarakat
+ */
+
+class PermohonanKKBaru extends Model implements PermohonanInterface
 {
     use HasFactory,NomorSuratGenerator;
 
+    
     protected $table = 'permohonan_kk_baru';
 
     protected $fillable = [
@@ -46,4 +53,29 @@ class PermohonanKKBaru extends Model
  return $this->belongsTo(Masyarakat::class, 'masyarakat_id');
 }
 
+// ===================================================================
+    // IMPLEMENTASI METODE DARI INTERFACE
+    // ===================================================================
+
+    public function getJudulNotifikasi(): string
+    {
+        return "Permohonan KK Baru";
+    }
+
+    public function getPemohon(): Masyarakat
+    {
+        return $this->masyarakat;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getRouteTujuan(): string
+    {
+        // Pastikan nama route ini benar
+        return route('petugas.permohonan-kk-baru.show', $this->id);
+    }
 }
+

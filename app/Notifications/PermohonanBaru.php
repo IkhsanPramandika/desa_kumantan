@@ -4,65 +4,77 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
 
-class PermohonanBaru extends Notification
+class PermohonanBaru extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected $permohonan;
-    protected $jenisSurat;
-    protected $routeName;
+    // [REFACTOR] Properti sekarang menyimpan data mentah, bukan objek
+    public string $title;
+    public string $message;
+    public string $url;
+    public int $permohonanId;
 
     /**
-     * Buat instance notifikasi baru.
-     *
-     * @param Model $permohonan Model dari permohonan yang dibuat (misal: PermohonanKKBaru)
-     * @param string $jenisSurat Nama dari jenis surat (misal: "KK Baru")
-     * @param string $routeName Nama route untuk halaman detail (misal: "petugas.permohonan-kk-baru.show")
+     * [REFACTOR] Constructor sekarang menerima data yang sudah jadi.
      */
-    public function __construct(Model $permohonan, string $jenisSurat, string $routeName)
+    public function __construct(string $title, string $message, string $url, int $permohonanId)
     {
-        $this->permohonan = $permohonan;
-        $this->jenisSurat = $jenisSurat;
-        $this->routeName = $routeName;
+        $this->title = $title;
+        $this->message = $message;
+        $this->url = $url;
+        $this->permohonanId = $permohonanId;
     }
 
     /**
-     * Tentukan channel pengiriman notifikasi.
-     *
-     * @param  mixed  $notifiable
-     * @return array
+     * Method via() tidak perlu diubah.
      */
-    public function via($notifiable)
+    public function via($notifiable): array
     {
-        // Kita hanya butuh channel database untuk sistem polling
-        return ['database'];
+        $channels = ['database'];
+        if ($notifiable->fcm_token) {
+            $channels[] = FcmChannel::class;
+        }
+        return $channels;
     }
 
     /**
-     * Dapatkan representasi notifikasi dalam format array untuk disimpan di database.
-     *
-     * @param  mixed  $notifiable
-     * @return array
+     * [REFACTOR] Method toArray() sekarang hanya menggunakan data yang sudah ada.
+     * Tidak ada lagi query ke database.
      */
-    public function toArray($notifiable)
+    public function toArray($notifiable): array
     {
-        // Mengambil nama dari relasi 'masyarakat' yang sudah kita perbaiki sebelumnya.
-        // Ini akan berfungsi selama semua model permohonan Anda punya relasi `masyarakat()`.
-        $namaPemohon = $this->permohonan->masyarakat->nama_lengkap ?? 'Seorang Warga';
+       
+    $dataToSave = [
+        'pesan' => $this->message,
+        'permohonan_id' => $this->permohonanId,
+        'url' => $this->url,
+    ];
 
-        return [
-            'permohonan_id' => $this->permohonan->id,
-            'nama_pemohon' => $namaPemohon,
-            'jenis_surat' => $this->jenisSurat,
-            'status' => 'pending', // Status awal selalu pending
-            'pesan' => 'Permohonan ' . $this->jenisSurat . ' telah diajukan oleh ' . $namaPemohon,
-            // Membuat URL secara dinamis menggunakan routeName yang kita kirim
-            'url' => route($this->routeName, $this->permohonan->id),
-            'waktu' => now()->toDateTimeString(), // Ini akan di-parse oleh Carbon di frontend/controller
-        ];
+    // [TES DEBUGGING FINAL]
+    // Kita log data ini untuk melihat isinya persis sebelum disimpan
+    \Illuminate\Support\Facades\Log::info('DATA YANG AKAN DISIMPAN KE DB NOTIFIKASI:', $dataToSave);
+
+    return $dataToSave;
+    }
+
+    /**
+     * [REFACTOR] Method toFcm() juga hanya menggunakan data yang sudah ada.
+     */
+    public function toFcm($notifiable): FcmMessage
+    {
+        return FcmMessage::create()
+            ->setNotification([
+                'title' => $this->title,
+                'body' => $this->message,
+            ])
+            ->setData([
+                'permohonan_id' => (string) $this->permohonanId,
+                'jenis_notifikasi' => str_replace(' ', '_', strtolower($this->title)),
+                'url_webview' => $this->url,
+            ]);
     }
 }

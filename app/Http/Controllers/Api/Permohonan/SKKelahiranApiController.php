@@ -56,7 +56,12 @@ class SKKelahiranApiController extends Controller
                     $jenisSurat = "SK Kelahiran";
                     $routeName = "petugas.permohonan-sk-kelahiran.show"; 
 
-                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                    $title = $permohonan->getJudulNotifikasi();
+                    $message = 'Ada ' . $title . ' baru dari ' . $permohonan->getPemohon()->nama_lengkap;
+
+                   $notification = (new PermohonanBaru(get_class($permohonan), $permohonan->id, $title, $message))->afterCommit();
+
+                Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk SK Kelahiran: ' . $e->getMessage());
@@ -95,25 +100,30 @@ class SKKelahiranApiController extends Controller
     public function show(Request $request, $id): JsonResponse 
     {
         $user = $request->user('sanctum');
-        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
-                                      ->find($id);
-        
-        if (!$permohonan) {
-            return response()->json(['message' => 'Permohonan SK Kelahiran tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
-        }
-            
-        return (new PermohonanSKKelahiranResource($permohonan))
-                       ->additional(['message' => 'Detail permohonan SK Kelahiran berhasil diambil.'])
-                       ->response(); 
+  
+    $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
+                                             ->where('id', $id) // <-- Gunakan where()
+                                             ->first();         // <-- dan first()
+
+    if (!$permohonan) {
+        return response()->json(['message' => 'Permohonan tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
     }
+        
+        return (new PermohonanSKKelahiranResource($permohonan))
+            ->additional(['message' => 'Detail permohonan berhasil diambil.'])
+            ->response();
+    }
+    
 
     public function downloadHasil(Request $request, $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
     {
         $user = $request->user('sanctum');
+   
         $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
-                                      ->where('status', 'selesai') 
-                                      ->find($id);
-        
+            ->where('status', 'selesai')
+            ->where('id', $id) // <-- Gunakan where()
+            ->first();         // <-- dan first()
+    
         if (!$permohonan) {
             return response()->json(['message' => 'Permohonan tidak ditemukan, belum selesai, atau Anda tidak berhak mengaksesnya.'], 404);
         }

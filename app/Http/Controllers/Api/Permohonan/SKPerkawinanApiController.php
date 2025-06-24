@@ -69,7 +69,12 @@ class SKPerkawinanApiController extends Controller
                     $jenisSurat = "SK Perkawinan";
                     $routeName = "petugas.permohonan-sk-perkawinan.show";
 
-                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                    $title = $permohonan->getJudulNotifikasi();
+                    $message = 'Ada ' . $title . ' baru dari ' . $permohonan->getPemohon()->nama_lengkap;
+
+                    $notification = (new PermohonanBaru(get_class($permohonan), $permohonan->id, $title, $message))->afterCommit();
+
+                Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk SK Perkawinan: ' . $e->getMessage());
@@ -97,12 +102,19 @@ class SKPerkawinanApiController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $user = $request->user();
-        $permohonan = PermohonanSKPerkawinan::where('id', $id)
-            ->where('masyarakat_id', $user->id)
-            ->firstOrFail();
+        $user = $request->user('sanctum');
+    
+        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $user->id)
+                                                ->where('id', $id) // <-- Gunakan where()
+                                                ->first();         // <-- dan first()
+
+        if (!$permohonan) {
+            return response()->json(['message' => 'Permohonan tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
+        }
             
-        return new PermohonanSKPerkawinanResource($permohonan);
+        return (new PermohonanSKPerkawinanResource($permohonan))
+            ->additional(['message' => 'Detail permohonan berhasil diambil.'])
+            ->response();
     }
 
     /**
@@ -110,11 +122,12 @@ class SKPerkawinanApiController extends Controller
      */
     public function downloadHasil(Request $request, $id)
     {
-        $user = $request->user();
-        $permohonan = PermohonanSKPerkawinan::where('id', $id)
-            ->where('masyarakat_id', $user->id)
+         $user = $request->user('sanctum');
+    
+        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $user->id)
             ->where('status', 'selesai')
-            ->first();
+            ->where('id', $id) // <-- Gunakan where()
+            ->first();         // <-- dan first()
 
         if (!$permohonan) {
             return response()->json(['message' => 'Dokumen tidak ditemukan atau belum selesai.'], 404);

@@ -2,11 +2,25 @@
 
 namespace App\Models;
 
+use App\Interfaces\PermohonanInterface;
 use App\Traits\NomorSuratGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class PermohonanSKTidakMampu extends Model 
+/**
+ * Class PermohonanSKTidakMampu
+ *
+ * @property int $id
+ * @property int $masyarakat_id
+ * @property string $status
+ * @property string|null $catatan_penolakan
+ * @property string|null $file_hasil_akhir
+ * @property-read \App\Models\Masyarakat $masyarakat
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
+
+class PermohonanSKTidakMampu extends Model implements PermohonanInterface
 {
     use HasFactory,NomorSuratGenerator;
 
@@ -67,5 +81,30 @@ class PermohonanSKTidakMampu extends Model
     public function masyarakat()
     {
         return $this->belongsTo(Masyarakat::class);
+    }
+
+     // ===================================================================
+    // IMPLEMENTASI METODE DARI INTERFACE
+    // ===================================================================
+
+    public function getJudulNotifikasi(): string
+    {
+        return "Permohonan SK Tidak Mampu";
+    }
+
+    public function getPemohon(): \App\Models\Masyarakat
+    {
+        return $this->masyarakat;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getRouteTujuan(): string
+    {
+        // Pastikan nama route ini benar
+        return route('petugas.permohonan-kk-baru.show', $this->id);
     }
 }

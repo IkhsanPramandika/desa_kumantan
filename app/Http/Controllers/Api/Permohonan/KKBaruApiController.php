@@ -15,36 +15,34 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class KKBaruApiController extends Controller 
+class KKBaruApiController extends Controller
 {
     /**
-     * Menyimpan permohonan baru dari aplikasi mobile.
+     * Menyimpan permohonan KK Baru dari aplikasi mobile.
      */
     public function store(StoreKKBaruRequest $request)
     {
-        Log::info('Data Masuk dari Request KK Baru:', $request->all());
-        
         $validatedData = $request->validated();
-        $user = $request->user();
+        $user = $request->user(); // Ini adalah objek Masyarakat yang login
         $uploadedFilePaths = [];
 
         try {
-            $dbData = $validatedData;
+            // Kita hanya akan menyimpan data yang ada kolomnya di tabel permohonan.
+            $dbData = [
+                'masyarakat_id' => $user->id,
+                'status' => 'pending',
+                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
+            ];
 
-            // ====================================================================
-            // PERBAIKAN: Mapping 'catatan' dari mobile ke 'catatan_pemohon' di DB
-            // ====================================================================
-            // Kita perlu mengambilnya dari $request, bukan $validatedData, karena namanya berbeda.
-            if ($request->has('catatan')) {
-                $dbData['catatan_pemohon'] = $request->input('catatan');
-            }
-            // ====================================================================
-
-            $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
-
-            // Logika untuk menangani upload file lampiran
-            $fileFields = ['surat_pengantar_rt_rw', 'kk_lama', 'file_ktp', 'buku_nikah_akta_cerai', 'surat_pindah_datang', 'ijazah_terakhir'];
+            // Sesuaikan file-file yang dibutuhkan untuk Permohonan KK Baru
+            $fileFields = [
+                'surat_pengantar_rt_rw',
+                'kk_lama', // jika menumpang
+                'file_ktp',
+                'buku_nikah_akta_cerai', // jika ada
+                'surat_pindah_datang', // jika pindahan
+                'ijazah_terakhir' // jika ada
+            ];
             $basePath = 'permohonan_kk_baru/lampiran';
 
             foreach ($fileFields as $field) {
@@ -52,23 +50,27 @@ class KKBaruApiController extends Controller
                     $file = $request->file($field);
                     $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
                     $filePath = $basePath . '/' . $fileName;
+                    
                     Storage::disk('public')->put($filePath, file_get_contents($file));
-                    $dbData[$field] = $filePath; 
+                    
+                    $dbData[$field] = $filePath;
                     $uploadedFilePaths[] = $filePath;
                 }
             }
-            
-            Log::info('Data yang akan dibuat untuk PermohonanKKBaru:', $dbData);
 
             $permohonan = PermohonanKKBaru::create($dbData);
 
-            // Mengirim notifikasi ke petugas
+            // Mengirim notifikasi ke petugas menggunakan pola yang sudah benar
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
-                    $jenisSurat = "KK Baru";
-                    $routeName = "petugas.permohonan-kk-baru.show";
-                    Notification::send($semuaPetugas, new PermohonanBaru($permohonan, $jenisSurat, $routeName));
+                    $title = $permohonan->getJudulNotifikasi();
+                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                    $url = $permohonan->getRouteTujuan();
+                    $permohonanId = $permohonan->getId();
+
+                    $notification = (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit();
+                    Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk KK Baru: ' . $e->getMessage());
@@ -76,12 +78,11 @@ class KKBaruApiController extends Controller
 
             return (new PermohonanKKBaruResource($permohonan))
                 ->additional(['message' => 'Permohonan KK Baru berhasil diajukan.'])
-                ->response()
-                ->setStatusCode(201);
+                ->response()->setStatusCode(201);
 
         } catch (\Exception $e) {
             Log::error('[API KK Baru - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Hapus file yang sudah terlanjur di-upload jika terjadi error
+            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -96,68 +97,32 @@ class KKBaruApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user('sanctum');
-        if (!$user) {
-            return response()->json(['message' => 'Tidak terautentikasi.'], 401);
-        }
-
+        $user = $request->user();
         $permohonan = PermohonanKKBaru::where('masyarakat_id', $user->id)
             ->latest()
             ->paginate(10);
         
         return PermohonanKKBaruResource::collection($permohonan)
             ->additional(['message' => 'Daftar permohonan KK Baru berhasil diambil.'])
-            ->response(); 
+            ->response();
     }
 
     /**
      * Menampilkan detail satu permohonan.
      */
-    public function show(Request $request, $id): JsonResponse 
+    public function show(Request $request, $id): JsonResponse
     {
-        $user = $request->user('sanctum');
-        if (!$user) {
-            return response()->json(['message' => 'Tidak terautentikasi.'], 401);
-        }
-
+        $user = $request->user();
         $permohonan = PermohonanKKBaru::where('masyarakat_id', $user->id)
-            ->find($id);
-        
+            ->where('id', $id)
+            ->first();
+
         if (!$permohonan) {
-            return response()->json(['message' => 'Permohonan tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
+            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
         }
             
         return (new PermohonanKKBaruResource($permohonan))
-            ->additional(['message' => 'Detail permohonan berhasil diambil.'])
-            ->response(); 
-    }
-
-    /**
-     * Mengunduh file hasil akhir.
-     */
-    public function downloadHasil(Request $request, $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
-    {
-        $user = $request->user('sanctum');
-        if (!$user) {
-            return response()->json(['message' => 'Tidak terautentikasi.'], 401);
-        }
-
-        $permohonan = PermohonanKKBaru::where('masyarakat_id', $user->id)
-            ->where('status', 'selesai')
-            ->find($id);
-        
-        if (!$permohonan) {
-            return response()->json(['message' => 'Permohonan tidak ditemukan, belum selesai, atau Anda tidak berhak mengaksesnya.'], 404);
-        }
-
-        if ($permohonan->file_hasil_akhir) {
-            $path = $permohonan->file_hasil_akhir;
-            
-            if (Storage::disk('public')->exists($path)) {
-                return Storage::disk('public')->download($path);
-            }
-        }
-        
-        return response()->json(['message' => 'File hasil akhir tidak tersedia untuk permohonan ini.'], 404);
+            ->additional(['message' => 'Detail permohonan KK Baru berhasil diambil.'])
+            ->response();
     }
 }

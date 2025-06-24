@@ -108,15 +108,12 @@
                     
                     
                     <div class="col pl-3">
-                        <h6 class="font-weight-bold text-dark mb-0">
-                            Permohonan <?php echo e($notif->data['jenis_surat'] ?? 'Tidak Diketahui'); ?>
+                        
+                        <div class="font-weight-bold text-dark mb-0">
+                            <?php echo e($notif->data['pesan'] ?? 'Notifikasi baru.'); ?>
 
-                            
                             <a href="<?php echo e($notif->data['url'] ?? '#'); ?>" class="stretched-link"></a>
-                        </h6>
-                        <small class="text-muted">
-                            Oleh <strong><?php echo e($notif->data['nama_pemohon'] ?? 'Warga'); ?></strong>
-                        </small>
+                        </div>
                     </div>
 
                     

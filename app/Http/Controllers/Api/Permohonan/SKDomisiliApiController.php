@@ -3,86 +3,80 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\Permohonan\sk_domisili\StoreSkDomisiliRequest;
+use App\Http\Requests\Api\Permohonan\sk_domisili\StoreSKDomisiliRequest;
 use App\Http\Resources\Permohonan\sk_domisili\PermohonanSKDomisiliResource;
 use App\Models\PermohonanSKDomisili;
-use App\Models\User; // Tambahkan use statement untuk User
-use App\Notifications\PermohonanBaru; // Tambahkan use statement untuk Notifikasi Universal
+use App\Models\User;
+use App\Notifications\PermohonanBaru;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification; // Tambahkan use statement untuk Notification
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SKDomisiliApiController extends Controller
 {
     /**
-     * Menampilkan daftar permohonan milik pengguna yang terotentikasi.
+     * Menyimpan permohonan SK Domisili dari aplikasi mobile.
      */
-    public function index(Request $request)
-    {
-        $user = $request->user();
-        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $user->id)
-            ->latest()
-            ->paginate(10);
-
-        return PermohonanSKDomisiliResource::collection($permohonan);
-    }
-
-    /**
-     * Menyimpan permohonan baru dari aplikasi mobile.
-     */
-    public function store(StoreSkDomisiliRequest $request)
+    public function store(StoreSKDomisiliRequest $request)
     {
         $validatedData = $request->validated();
-        $user = $request->user();
-        $uploadedFilePaths = []; 
+        $user = $request->user(); // Ini adalah objek Masyarakat yang login
+        $uploadedFilePaths = [];
 
         try {
-            $dbData = $validatedData;
-            $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
+            // Kita hanya menyimpan data yang relevan ke tabel permohonan.
+            $dbData = [
+                'masyarakat_id' => $user->id,
+                'status' => 'pending',
+                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
+            ];
 
-            // Proses upload file
-            $fileFields = ['file_kk', 'file_ktp', 'file_surat_pengantar_rt_rw'];
+            // Sesuaikan file-file yang dibutuhkan untuk Permohonan SK Domisili
+            $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw'];
             $basePath = 'permohonan_sk_domisili/lampiran';
 
             foreach ($fileFields as $field) {
                 if ($request->hasFile($field)) {
-                    $path = $request->file($field)->store($basePath, 'public');
-                    $dbData[$field] = $path;
-                    $uploadedFilePaths[] = $path;
+                    $file = $request->file($field);
+                    $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
+                    $filePath = $basePath . '/' . $fileName;
+                    
+                    Storage::disk('public')->put($filePath, file_get_contents($file));
+                    
+                    $dbData[$field] = $filePath;
+                    $uploadedFilePaths[] = $filePath;
                 }
             }
-
+            
             $permohonan = PermohonanSKDomisili::create($dbData);
 
-            // ====================================================================
-            // [PERBAIKAN] Mengganti sistem Event dengan Notifikasi Universal
-            // ====================================================================
+            // Mengirim notifikasi ke petugas menggunakan pola yang sudah benar
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
-
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Sesuaikan parameter untuk SK Domisili
-                    $jenisSurat = "SK Domisili";
-                    $routeName = "petugas.permohonan-sk-domisili.show"; // Sesuaikan jika nama route Anda berbeda
+                    // Siapkan semua data matang di sini
+                    $title = $permohonan->getJudulNotifikasi();
+                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                    $url = $permohonan->getRouteTujuan();
+                    $permohonanId = $permohonan->getId();
 
-                    Notification::send($semuaPetugas, new PermohonanBarU($permohonan, $jenisSurat, $routeName));
+                    $notification = (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit();
+                    Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
-                // Catat error jika notifikasi gagal, tapi jangan hentikan proses utama
                 Log::error('Gagal mengirim notifikasi untuk SK Domisili: ' . $e->getMessage());
             }
-            // ====================================================================
-            
+
             return (new PermohonanSKDomisiliResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Domisili berhasil diajukan.'])
-                ->response()
-                ->setStatusCode(201);
+                ->response()->setStatusCode(201);
 
         } catch (\Exception $e) {
             Log::error('[API SK Domisili - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Rollback file yang sudah terupload jika ada error DB
+            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -93,37 +87,36 @@ class SKDomisiliApiController extends Controller
     }
 
     /**
-     * Menampilkan detail satu permohonan.
+     * Menampilkan daftar permohonan milik pengguna.
      */
-    public function show(Request $request, $id)
+    public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $permohonan = PermohonanSKDomisili::where('id', $id)
-            ->where('masyarakat_id', $user->id)
-            ->firstOrFail();
-            
-        return new PermohonanSKDomisiliResource($permohonan);
+        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $user->id)
+            ->latest()
+            ->paginate(10);
+        
+        return PermohonanSKDomisiliResource::collection($permohonan)
+            ->additional(['message' => 'Daftar permohonan SK Domisili berhasil diambil.'])
+            ->response();
     }
 
     /**
-     * Mengunduh file hasil akhir untuk pengguna yang terotentikasi.
+     * Menampilkan detail satu permohonan.
      */
-    public function downloadHasil(Request $request, $id)
+    public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        $permohonan = PermohonanSKDomisili::where('id', $id)
-            ->where('masyarakat_id', $user->id)
-            ->where('status', 'selesai')
+        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $user->id)
+            ->where('id', $id)
             ->first();
 
         if (!$permohonan) {
-            return response()->json(['message' => 'Dokumen tidak ditemukan atau belum selesai.'], 404);
+            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
         }
-
-        if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
-            return Storage::disk('public')->download($permohonan->file_hasil_akhir);
-        }
-
-        return response()->json(['message' => 'File fisik tidak ditemukan di server.'], 404);
+            
+        return (new PermohonanSKDomisiliResource($permohonan))
+            ->additional(['message' => 'Detail permohonan berhasil diambil.'])
+            ->response();
     }
 }

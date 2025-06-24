@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Interfaces\PermohonanInterface;
 use App\Traits\NomorSuratGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class PermohonanSKPerkawinan extends Model
+
+/**
+ * @property int $id
+ * @property-read \App\Models\Masyarakat $masyarakat
+ */
+class PermohonanSKPerkawinan extends Model implements PermohonanInterface
 {
     use HasFactory,NomorSuratGenerator;
 
@@ -67,5 +73,30 @@ class PermohonanSKPerkawinan extends Model
     public function masyarakat()
     {
         return $this->belongsTo(Masyarakat::class);
+    }
+
+     // ===================================================================
+    // IMPLEMENTASI METODE DARI INTERFACE
+    // ===================================================================
+
+    public function getJudulNotifikasi(): string
+    {
+        return "Permohonan SK Pengantar Nikah";
+    }
+
+    public function getPemohon(): \App\Models\Masyarakat
+    {
+        return $this->masyarakat;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getRouteTujuan(): string
+    {
+        // Pastikan nama route ini benar
+        return route('petugas.permohonan-kk-baru.show', $this->id);
     }
 }

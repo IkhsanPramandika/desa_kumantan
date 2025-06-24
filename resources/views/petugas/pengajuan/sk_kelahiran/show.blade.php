@@ -106,9 +106,9 @@
                         $lampiran = [
                             'file_kk' => 'Kartu Keluarga',
                             'file_ktp' => 'KTP Orang Tua',
-                            'surat_pengantar_rt_rw' => 'Surat Pengantar',
-                            'surat_nikah_orangtua' => 'Buku Nikah',
-                            'surat_keterangan_kelahiran' => 'Ket. Kelahiran Bidan/RS'
+                            'surat_pengantar_rt_rw' => 'Surat Pengantar RT/RW',
+                            'surat_nikah_orangtua' => 'Buku Nikah Orang Tua',
+                            'surat_keterangan_kelahiran' => 'Surat Keterangan Kelahiran Bidan/RS'
                         ];
                     @endphp
                     @foreach ($lampiran as $field => $label)

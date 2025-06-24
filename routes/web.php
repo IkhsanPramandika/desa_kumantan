@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Dashboord
-use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Petugas\NotificationController;
 use App\Http\Controllers\Petugas\Dashboard\SearchController;
 use App\Http\Controllers\Petugas\Dashboard\PetugasController;
 use App\Http\Controllers\Petugas\Dashboard\ProfileController;

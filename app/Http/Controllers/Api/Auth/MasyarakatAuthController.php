@@ -239,4 +239,28 @@ class MasyarakatAuthController extends Controller
             return response()->json(['message' => 'Terjadi kesalahan pada server saat memperbarui profil.'], 500);
         }
     }
+        public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'current_password' => ['required', 'string'],
+            'new_password'     => ['required', 'string', 'confirmed', PasswordRules::min(8)->mixedCase()->numbers()->symbols()],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Periksa apakah password saat ini cocok
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Password saat ini tidak cocok.'], 401);
+        }
+
+        // Update password dengan yang baru
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password berhasil diubah.']);
+    }
 }

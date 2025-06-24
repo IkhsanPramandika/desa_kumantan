@@ -79,27 +79,10 @@
             </table>
         </div>
         
-        <div class="d-flex justify-content-center mt-4">
+        {{-- <div class="d-flex justify-content-center mt-4">
             {{ $data->links() }}
-        </div>
+        </div> --}}
 
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-$(document).ready(function() {
-  if ($.fn.DataTable.isDataTable('#dataTable')) {
-    $('#dataTable').DataTable().destroy();
-  }
-  $('#dataTable').DataTable({
-    "searching": false,
-    "paging": true,
-    "info": true,
-    "order": [],
-    "columnDefs": [ { "targets": 'no-sort', "orderable": true } ]
-  });
-});
-</script>
-@endpush

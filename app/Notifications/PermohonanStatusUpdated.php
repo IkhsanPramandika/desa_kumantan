@@ -7,51 +7,64 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\Interfaces\PermohonanInterface;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class PermohonanStatusUpdated extends Notification
 {
     use Queueable;
 
     protected $permohonan;
-    protected $title;
-    protected $message;
-    protected $url;
-
-    /**
-     * Buat instance notifikasi baru.
-     *
-     * @param Model  $permohonan  Objek permohonan yang statusnya berubah.
-     * @param string $title       Judul notifikasi (cth: "Permohonan Selesai").
-     * @param string $message     Pesan detail notifikasi.
-     * @param string $url         URL yang akan dituju saat notifikasi diklik.
-     */
-    public function __construct(Model $permohonan, string $title, string $message, string $url)
+    
+    public function __construct(PermohonanInterface $permohonan)
     {
         $this->permohonan = $permohonan;
-        $this->title = $title;
-        $this->message = $message;
-        $this->url = $url;
     }
 
     /**
      * Tentukan channel pengiriman notifikasi.
+     * Logika ini sudah benar, tidak perlu diubah.
      */
     public function via($notifiable)
     {
-        return ['database']; // Kirim ke database untuk ditampilkan di aplikasi mobile
+        $channels = ['database'];
+        if ($notifiable->fcm_token) {
+            $channels[] = FcmChannel::class;
+        }
+        return $channels;
     }
 
     /**
-     * Dapatkan representasi array dari notifikasi.
+     * [PERBAIKAN 3] Ubah cara pengambilan data agar menggunakan method dari Interface.
+     * Format notifikasi untuk disimpan di database (untuk website).
      */
     public function toArray($notifiable)
     {
         return [
-            'permohonan_id' => $this->permohonan->id,
-            'title' => $this->title,
-            'message' => $this->message,
-            'url' => $this->url,
-            'waktu' => now()->toDateTimeString(),
+            'pesan' => 'Ada ' . $this->permohonan->getJudulNotifikasi() . ' baru dari ' . $this->permohonan->getPemohon()->nama_lengkap, // Asumsi di model Masyarakat ada kolom 'nama_lengkap'
+            'permohonan_id' => $this->permohonan->getId(),
+            'url' => $this->permohonan->getRouteTujuan(),
         ];
     }
+
+    /**
+     * [PERBAIKAN 4] Ubah juga cara pengambilan data di sini agar menggunakan method dari Interface.
+     * Format notifikasi untuk dikirim via FCM (untuk mobile).
+     */
+    public function toFcm($notifiable)
+{
+    return FcmMessage::create()
+        ->setNotification([
+            'title' => $this->permohonan->getJudulNotifikasi(),
+            'body' => 'Ada permohonan baru dari ' . $this->permohonan->getPemohon()->nama_lengkap, // Asumsi nama kolomnya 'nama_lengkap'
+            // 'image' => 'URL_GAMBAR_JIKA_ADA' // Anda bisa menambahkan URL gambar di sini jika perlu
+        ])
+        ->setData([ // Bagian ini tidak perlu diubah
+            'permohonan_id' => (string) $this->permohonan->getId(),
+            'jenis_notifikasi' => str_replace(' ', '_', strtolower($this->permohonan->getJudulNotifikasi())),
+            'url_webview' => $this->permohonan->getRouteTujuan(),
+        ]);
+}
 }
