@@ -54,7 +54,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($data as $item)
+                    @forelse ($permohonan as $item)
                         <tr>
                             <td>{{ $item->id }}</td>
                             <td>
@@ -96,7 +96,7 @@
         
         {{-- PERBAIKAN: Menambahkan kembali Link Paginasi Laravel --}}
         <div class="d-flex justify-content-center mt-4">
-            {{ $data->links() }}
+            {{ $permohonan->links() }}
         </div>
 
     </div>

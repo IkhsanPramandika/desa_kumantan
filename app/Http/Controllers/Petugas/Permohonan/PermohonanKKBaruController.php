@@ -28,9 +28,13 @@ class PermohonanKKBaruController extends Controller
             $query->where('status', $request->status);
         }
 
-        $data = $query->get(); // <-- Ubah paginate() menjadi get()
+        // ==========================================================
+        // PERUBAHAN DI SINI: Ganti get() menjadi paginate()
+        // ==========================================================
+        $permohonan = $query->paginate(10)->withQueryString();
         
-        return view('petugas.pengajuan.kk_baru.index', compact('data'));
+        // Mengirim variabel dengan nama 'permohonan' agar lebih deskriptif di view
+        return view('petugas.pengajuan.kk_baru.index', compact('permohonan'));
     }
 
     public function show($id)

@@ -49,25 +49,23 @@ class PengumumanApiController extends Controller
     // PERBAIKAN 3: Gunakan FormRequest untuk validasi yang bersih
     public function store(StorePengumumanRequest $request)
     {
-        // Data yang masuk sudah pasti aman karena telah melewati validasi
         $validatedData = $request->validated();
-        
-        // Menambahkan user_id dari petugas yang sedang login (asumsi)
         $validatedData['user_id'] = auth()->id(); 
         
-        // Membuat pengumuman hanya dengan data yang sudah divalidasi
         $pengumuman = Pengumuman::create($validatedData);
 
-        // PERBAIKAN 4: Kirim notifikasi hanya ke warga yang aktif
+        // <<< PERBAIKAN: Gunakan Queue untuk pengiriman notifikasi >>>
+        // Ini akan mengirim notifikasi di latar belakang tanpa membuat API menunggu.
         $semuaWargaAktif = Masyarakat::where('status_akun', 'active')->get();
         if ($semuaWargaAktif->isNotEmpty()) {
+            // Gunakan `Notification::sendLater` atau pastikan Notifikasi Anda mengimplementasikan `ShouldQueue`
             Notification::send($semuaWargaAktif, new PengumumanBaru($pengumuman));
         }
 
-        // Mengembalikan response dengan data pengumuman yang baru dibuat
         return (new PengumumanResource($pengumuman))
-                ->additional(['message' => 'Pengumuman berhasil dibuat dan notifikasi telah dikirim.'])
+                ->additional(['message' => 'Pengumuman berhasil dibuat dan notifikasi sedang dikirim.'])
                 ->response()
                 ->setStatusCode(201);
     }
 }
+

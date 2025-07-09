@@ -28,10 +28,10 @@ use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
 | Rute API Publik (Tidak Perlu Login)
 |--------------------------------------------------------------------------
 */
-Route::prefix('pengumuman')->name('api.pengumuman.')->group(function () {
-    Route::get('/', [PengumumanApiController::class, 'index'])->name('index');
-    Route::get('/{slug}', [PengumumanApiController::class, 'show'])->name('show');
-});
+Route::get('/pengumuman', [PengumumanApiController::class, 'index'])->name('api.pengumuman.index');
+Route::get('/pengumuman/{slug}', [PengumumanApiController::class, 'show'])->name('api.pengumuman.show');
+
+
 
 Route::prefix('masyarakat')->name('api.masyarakat.')->group(function () {
     Route::post('register', [MasyarakatAuthController::class, 'register'])->name('register');
@@ -65,10 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('password', [MasyarakatAuthController::class, 'changePassword'])->name('password.change');
     });
 
-    // --- Rute untuk Riwayat Terpusat ---
-    Route::get('/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index']);
-    Route::get('/masyarakat/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index'])->name('api.masyarakat.auth.riwayat.semua');
-    
+   
     /*
     |--------------------------------------------------------------------------
     | Grup Rute untuk Semua Jenis Permohonan
@@ -110,7 +107,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('permohonan-sk-usaha', SKUsahaApiController::class)->except(['update', 'destroy']);
         $addDownloadRoute('permohonan-sk-usaha', SKUsahaApiController::class);
 
-       Route::get('/permohonan/{jenis_surat_slug}/{id}', [RiwayatPermohonanController::class, 'show']);
+        // --- Rute untuk Riwayat Terpusat ---
+        Route::get('/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index']);
+        Route::get('/masyarakat/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index'])->name('api.masyarakat.auth.riwayat.semua');
+        
+      
+        Route::get('/permohonan/{jenis_surat_slug}/{id}', [RiwayatPermohonanController::class, 'show']);
     });
 
 });

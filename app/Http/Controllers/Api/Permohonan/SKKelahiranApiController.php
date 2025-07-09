@@ -3,79 +3,78 @@
 namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
-use App\Models\PermohonanSKKelahiran;
 use App\Http\Requests\Api\Permohonan\sk_kelahiran\StoreSKKelahiranRequest;
 use App\Http\Resources\Permohonan\sk_kelahiran\PermohonanSKKelahiranResource;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
-use Illuminate\Support\Carbon;
-use App\Models\User; 
+use App\Models\PermohonanSKKelahiran;
+use App\Models\User;
 use App\Notifications\PermohonanBaru;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
-class SKKelahiranApiController extends Controller 
+class SKKelahiranApiController extends Controller
 {
-    protected $attachmentBaseDir = 'permohonan_sk_kelahiran_attachments';
-
+    /**
+     * Menyimpan permohonan SK Kelahiran baru dari aplikasi mobile.
+     */
     public function store(StoreSKKelahiranRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
-        $dbData = $validatedData;
-        
-        $user = $request->user('sanctum');
-        $dbData['masyarakat_id'] = $user->id; 
-        $dbData['status'] = 'pending';
-
-        $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw', 'surat_nikah_orangtua', 'surat_keterangan_kelahiran'];
-        
-        // Inisialisasi array untuk melacak file yang diunggah
+        $user = $request->user(); // Ini adalah objek Masyarakat yang login
         $uploadedFilePaths = [];
 
-        foreach ($fileFields as $fileField) {
-            if ($request->hasFile($fileField)) {
-                $path = $request->file($fileField)->store($this->attachmentBaseDir . '/' . $fileField, 'public');
-                $dbData[$fileField] = $path;
-                $uploadedFilePaths[$fileField] = $path; // Simpan path untuk rollback
-            }
-        }
-        
         try {
-            $permohonan = PermohonanSKKelahiran::create($dbData);
+            // Mengambil semua data yang divalidasi dan menambahkan data sistem
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
+
+            // Menangani upload file lampiran
+            $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw', 'surat_nikah_orangtua', 'surat_keterangan_kelahiran'];
+            $basePath = 'permohonan_sk_kelahiran/lampiran';
+
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
+                    $filePath = $basePath . '/' . $fileName;
+                    
+                    Storage::disk('public')->put($filePath, file_get_contents($file));
+                    
+                    $dbData[$field] = $filePath;
+                    $uploadedFilePaths[] = $filePath;
+                }
+            }
             
-            // ====================================================================
-            // [TAMBAHAN] Mengirim Notifikasi Universal
-            // ====================================================================
+            $permohonan = PermohonanSKKelahiran::create($dbData);
+
+            // Mengirim notifikasi ke petugas menggunakan pola yang paling aman
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
-
                 if ($semuaPetugas->isNotEmpty()) {
-                    $jenisSurat = "SK Kelahiran";
-                    $routeName = "petugas.permohonan-sk-kelahiran.show"; 
-
+                    // Siapkan semua data matang di sini
                     $title = $permohonan->getJudulNotifikasi();
-                    $message = 'Ada ' . $title . ' baru dari ' . $permohonan->getPemohon()->nama_lengkap;
+                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                    $url = $permohonan->getRouteTujuan();
+                    $permohonanId = $permohonan->getId();
 
-                   $notification = (new PermohonanBaru(get_class($permohonan), $permohonan->id, $title, $message))->afterCommit();
-
-                Notification::send($semuaPetugas, $notification);
+                    $notification = (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit();
+                    Notification::send($semuaPetugas, $notification);
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk SK Kelahiran: ' . $e->getMessage());
             }
-            // ====================================================================
 
             return (new PermohonanSKKelahiranResource($permohonan))
-                    ->additional(['message' => 'Permohonan SK Kelahiran berhasil diajukan.'])
-                    ->response()
-                    ->setStatusCode(201);
+                ->additional(['message' => 'Permohonan SK Kelahiran berhasil diajukan.'])
+                ->response()->setStatusCode(201);
 
         } catch (\Exception $e) {
-            Log::error('[SK Kelahiran API - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Rollback file yang sudah diunggah jika penyimpanan DB gagal
+            Log::error('[API SK Kelahiran - Store] Gagal menyimpan: ' . $e->getMessage());
+            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -84,57 +83,38 @@ class SKKelahiranApiController extends Controller
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }
-    
+
+    /**
+     * Menampilkan daftar permohonan milik pengguna.
+     */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user('sanctum');
+        $user = $request->user();
         $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
-                                ->latest()
-                                ->paginate(10);
+            ->latest()
+            ->paginate(10);
         
         return PermohonanSKKelahiranResource::collection($permohonan)
-                                 ->additional(['message' => 'Daftar permohonan SK Kelahiran berhasil diambil.'])
-                                 ->response(); 
+            ->additional(['message' => 'Daftar permohonan SK Kelahiran berhasil diambil.'])
+            ->response();
     }
 
-    public function show(Request $request, $id): JsonResponse 
+    /**
+     * Menampilkan detail satu permohonan.
+     */
+    public function show(Request $request, $id): JsonResponse
     {
-        $user = $request->user('sanctum');
-  
-    $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
-                                             ->where('id', $id) // <-- Gunakan where()
-                                             ->first();         // <-- dan first()
+        $user = $request->user();
+        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
+            ->where('id', $id)
+            ->first();
 
-    if (!$permohonan) {
-        return response()->json(['message' => 'Permohonan tidak ditemukan atau Anda tidak berhak mengaksesnya.'], 404);
-    }
-        
+        if (!$permohonan) {
+            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
+        }
+            
         return (new PermohonanSKKelahiranResource($permohonan))
             ->additional(['message' => 'Detail permohonan berhasil diambil.'])
             ->response();
-    }
-    
-
-    public function downloadHasil(Request $request, $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
-    {
-        $user = $request->user('sanctum');
-   
-        $permohonan = PermohonanSKKelahiran::where('masyarakat_id', $user->id)
-            ->where('status', 'selesai')
-            ->where('id', $id) // <-- Gunakan where()
-            ->first();         // <-- dan first()
-    
-        if (!$permohonan) {
-            return response()->json(['message' => 'Permohonan tidak ditemukan, belum selesai, atau Anda tidak berhak mengaksesnya.'], 404);
-        }
-
-        if ($permohonan->file_hasil_akhir) {
-            $path = Str::replaceFirst('/storage/', '', parse_url($permohonan->file_hasil_akhir, PHP_URL_PATH));
-            if (Storage::disk('public')->exists($path)) {
-                return Storage::disk('public')->download($path);
-            }
-        }
-        
-        return response()->json(['message' => 'File hasil akhir tidak tersedia.'], 404);
     }
 }

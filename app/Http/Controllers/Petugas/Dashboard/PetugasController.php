@@ -1,11 +1,13 @@
 <?php
 
 namespace App\Http\Controllers\Petugas\Dashboard;
-use App\Http\Controllers\Controller;
-
-use Illuminate\Http\Request;
 use App\Models\User;
 
+use App\Models\Masyarakat;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class PetugasController extends Controller
 {
@@ -69,5 +71,97 @@ class PetugasController extends Controller
         'overallTotalInProcess', // <-- BARU, DIKIRIM KE VIEW
         'overallTotalRejected'
     ));
+
+    
 }
+public function masyarakatIndex(Request $request)
+    {
+        // Memulai query dengan urutan terbaru
+        $query = Masyarakat::latest();
+
+        // Terapkan filter pencarian jika ada
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%")
+                  ->orWhere('nomor_hp', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Terapkan filter status akun jika ada
+        if ($request->filled('status_akun')) {
+            $query->where('status_akun', $request->status_akun);
+        }
+
+        // Ambil data dengan pagination dan sertakan query string (filter) saat berpindah halaman
+        $masyarakat = $query->paginate(10)->withQueryString();
+
+        return view('petugas.masyarakat.index', compact('masyarakat'));
+    }
+
+    /**
+     * Menampilkan detail satu akun masyarakat.
+     */
+    public function masyarakatShow(Masyarakat $masyarakat)
+    {
+        // Menggunakan Route-Model Binding, Laravel otomatis mencari user berdasarkan ID.
+        // Jika tidak ditemukan, akan menampilkan halaman 404.
+        return view('petugas.masyarakat.show', compact('masyarakat'));
+    }
+
+    /**
+     * Mengupdate status akun (verifikasi/aktifkan, tolak, nonaktifkan).
+     * Satu method untuk menangani semua aksi perubahan status.
+     */
+    public function updateStatus(Request $request, Masyarakat $masyarakat)
+    {
+        // Validasi input
+        $request->validate([
+            'status_akun' => 'required|in:active,rejected,inactive',
+            // Catatan wajib diisi hanya jika statusnya 'rejected' atau 'inactive'
+            'catatan_verifikasi' => 'required_if:status_akun,rejected,inactive|nullable|string|max:500',
+        ]);
+
+        // Update status dan catatan
+        $masyarakat->status_akun = $request->status_akun;
+        $masyarakat->catatan_verifikasi = $request->catatan_verifikasi;
+        
+        // Jika diaktifkan, hapus catatan verifikasi lama (jika ada)
+        if ($request->status_akun === 'active') {
+            $masyarakat->catatan_verifikasi = null;
+        }
+        
+        $masyarakat->save();
+        
+        // Kirim notifikasi ke masyarakat (Sangat disarankan)
+        // Anda bisa membuat class Notifikasi khusus untuk ini.
+        // Notification::send($masyarakat, new AkunStatusUpdatedNotification($masyarakat));
+
+        return redirect()->route('petugas.masyarakat.index')->with('success', 'Status akun berhasil diperbarui.');
+    }
+
+    /**
+     * Menampilkan form untuk mereset password oleh petugas.
+     */
+    public function showResetPasswordFormByPetugas(Masyarakat $masyarakat)
+    {
+        return view('petugas.masyarakat.reset_password_form', compact('masyarakat'));
+    }
+
+    /**
+     * Memproses reset password oleh petugas.
+     */
+    public function resetPasswordByPetugas(Request $request, Masyarakat $masyarakat)
+    {
+        $request->validate([
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $masyarakat->password = Hash::make($request->password);
+        $masyarakat->save();
+
+        return redirect()->route('petugas.masyarakat.index')->with('success', 'Password untuk akun ' . $masyarakat->nama_lengkap . ' berhasil direset.');
+    }
 }

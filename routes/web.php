@@ -70,7 +70,7 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     Route::prefix('masyarakat')->name('masyarakat.')->group(function () {
         Route::get('/', [PetugasController::class, 'masyarakatIndex'])->name('index');
         Route::get('/{masyarakat}', [PetugasController::class, 'masyarakatShow'])->name('show');
-        Route::post('/{masyarakat}/update-status', [PetugasController::class, 'updateMasyarakatStatus'])->name('updateStatus');
+        Route::post('/{masyarakat}/update-status', [PetugasController::class, 'updateStatus'])->name('updateStatus');
         Route::get('/{masyarakat}/reset-password', [PetugasController::class, 'showResetPasswordFormByPetugas'])->name('showResetPasswordFormByPetugas');
         Route::post('/{masyarakat}/reset-password', [PetugasController::class, 'resetPasswordByPetugas'])->name('resetPasswordByPetugas');
     });
