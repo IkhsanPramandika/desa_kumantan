@@ -1,53 +1,49 @@
 <?php
 
-namespace App\Http\Requests\Api\Permohonan\kk_hilang; // Sesuai struktur folder
+namespace App\Http\Requests\Api\Permohonan\kk_hilang;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Auth;
 
-class StoreKkHilangRequest extends FormRequest
+class StoreKKHilangRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return Auth::guard('sanctum')->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'surat_pengantar_rt_rw'             => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'surat_keterangan_hilang_kepolisian'=> 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'catatan_pemohon'                           => 'nullable|string|max:1000',
-            // Tambahkan validasi untuk field lain yang mungkin dikirim dari form Flutter jika ada
-            // misalnya, jika ada KTP atau KK lama yang perlu di-upload sebagai bukti tambahan:
-            // 'file_ktp_pemohon' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            // 'file_kk_lama' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'surat_pengantar_rt_rw' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'surat_keterangan_hilang_kepolisian' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'file_kk_lama' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'file_ktp_pemohon' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'catatan_pemohon' => 'nullable|string',
         ];
     }
 
-    /**
-     * Get custom messages for validator errors.
-     *
-     * @return array
-     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Data yang diberikan tidak valid.',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+
     public function messages(): array
     {
         return [
-            'surat_pengantar_rt_rw.required' => 'Surat Pengantar RT/RW wajib diunggah.',
-            'surat_pengantar_rt_rw.mimes' => 'Format Surat Pengantar RT/RW harus PDF, JPG, JPEG, atau PNG.',
-            'surat_pengantar_rt_rw.max' => 'Ukuran Surat Pengantar RT/RW maksimal 2MB.',
-            
-            'surat_keterangan_hilang_kepolisian.required' => 'Surat Keterangan Hilang dari Kepolisian wajib diunggah.',
-            'surat_keterangan_hilang_kepolisian.mimes' => 'Format Surat Keterangan Hilang harus PDF, JPG, JPEG, atau PNG.',
+            'surat_pengantar_rt_rw.mimes' => 'Format Surat Pengantar harus PDF, JPG, atau PNG.',
+            'surat_pengantar_rt_rw.max' => 'Ukuran Surat Pengantar maksimal 2MB.',
+            'surat_keterangan_hilang_kepolisian.mimes' => 'Format Surat Keterangan Hilang harus PDF, JPG, atau PNG.',
             'surat_keterangan_hilang_kepolisian.max' => 'Ukuran Surat Keterangan Hilang maksimal 2MB.',
+            'file_kk_lama.mimes' => 'Format File KK Lama harus PDF, JPG, atau PNG.',
+            'file_kk_lama.max' => 'Ukuran File KK Lama maksimal 2MB.',
+            'file_ktp_pemohon.mimes' => 'Format File KTP Pemohon harus PDF, JPG, atau PNG.',
+            'file_ktp_pemohon.max' => 'Ukuran File KTP Pemohon maksimal 2MB.',
         ];
     }
 }

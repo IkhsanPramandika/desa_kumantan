@@ -17,23 +17,17 @@ use Illuminate\Support\Str;
 
 class SKAhliWarisApiController extends Controller
 {
-    /**
-     * Menyimpan permohonan SK Ahli Waris dari aplikasi mobile.
-     */
     public function store(StoreSKAhliWarisRequest $request)
     {
         $validatedData = $request->validated();
-        $user = $request->user(); // Ini adalah objek Masyarakat yang login
+        $user = $request->user();
         $uploadedFilePaths = [];
 
         try {
-            // Kita hanya menyimpan data yang relevan ke tabel permohonan.
-            // Data pribadi (nama, NIK, dll) diambil dari $validatedData.
-            $dbData = $validatedData; 
+            $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // Menangani upload file lampiran
             $fileFields = [
                 'file_ktp_pemohon', 'file_kk_pemohon', 'file_ktp_ahli_waris',
                 'file_kk_ahli_waris', 'surat_keterangan_kematian', 'surat_pengantar_rt_rw',
@@ -55,11 +49,9 @@ class SKAhliWarisApiController extends Controller
             
             $permohonan = PermohonanSKAhliWaris::create($dbData);
 
-            // Mengirim notifikasi ke petugas menggunakan pola yang paling aman
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Siapkan semua data matang di sini
                     $title = $permohonan->getJudulNotifikasi();
                     $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
                     $url = $permohonan->getRouteTujuan();
@@ -78,7 +70,6 @@ class SKAhliWarisApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SK Ahli Waris - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -88,9 +79,6 @@ class SKAhliWarisApiController extends Controller
         }
     }
 
-    /**
-     * Menampilkan daftar permohonan milik pengguna.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -103,9 +91,6 @@ class SKAhliWarisApiController extends Controller
             ->response();
     }
 
-    /**
-     * Menampilkan detail satu permohonan.
-     */
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();

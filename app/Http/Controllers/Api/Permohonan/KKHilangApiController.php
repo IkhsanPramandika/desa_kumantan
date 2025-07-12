@@ -17,9 +17,6 @@ use Illuminate\Support\Str;
 
 class KKHilangApiController extends Controller
 {
-    /**
-     * Menyimpan permohonan KK Hilang dari aplikasi mobile.
-     */
     public function store(StoreKKHilangRequest $request)
     {
         $validatedData = $request->validated();
@@ -27,13 +24,10 @@ class KKHilangApiController extends Controller
         $uploadedFilePaths = [];
 
         try {
-            $dbData = [
-                'masyarakat_id' => $user->id,
-                'status' => 'pending',
-                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
-            ];
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
 
-            // Sesuaikan file-file yang dibutuhkan untuk Permohonan KK Hilang
             $fileFields = ['surat_pengantar_rt_rw', 'surat_keterangan_hilang_kepolisian'];
             $basePath = 'permohonan_kk_hilang/lampiran';
 
@@ -52,7 +46,6 @@ class KKHilangApiController extends Controller
 
             $permohonan = PermohonanKKHilang::create($dbData);
 
-            // Mengirim notifikasi ke petugas
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
@@ -74,7 +67,6 @@ class KKHilangApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API KK Hilang - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -84,9 +76,6 @@ class KKHilangApiController extends Controller
         }
     }
 
-    /**
-     * Menampilkan daftar permohonan milik pengguna.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -99,9 +88,6 @@ class KKHilangApiController extends Controller
             ->response();
     }
 
-    /**
-     * Menampilkan detail satu permohonan.
-     */
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();

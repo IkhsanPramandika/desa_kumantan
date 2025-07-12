@@ -17,25 +17,18 @@ use Illuminate\Support\Str;
 
 class SKDomisiliApiController extends Controller
 {
-    /**
-     * Menyimpan permohonan SK Domisili dari aplikasi mobile.
-     */
     public function store(StoreSKDomisiliRequest $request)
     {
         $validatedData = $request->validated();
-        $user = $request->user(); // Ini adalah objek Masyarakat yang login
+        $user = $request->user();
         $uploadedFilePaths = [];
 
         try {
-            // Kita hanya menyimpan data yang relevan ke tabel permohonan.
-            $dbData = [
-                'masyarakat_id' => $user->id,
-                'status' => 'pending',
-                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
-            ];
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
 
-            // Sesuaikan file-file yang dibutuhkan untuk Permohonan SK Domisili
-            $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw'];
+            $fileFields = ['file_kk', 'file_ktp', 'file_surat_pengantar_rt_rw'];
             $basePath = 'permohonan_sk_domisili/lampiran';
 
             foreach ($fileFields as $field) {
@@ -53,11 +46,9 @@ class SKDomisiliApiController extends Controller
             
             $permohonan = PermohonanSKDomisili::create($dbData);
 
-            // Mengirim notifikasi ke petugas menggunakan pola yang sudah benar
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Siapkan semua data matang di sini
                     $title = $permohonan->getJudulNotifikasi();
                     $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
                     $url = $permohonan->getRouteTujuan();
@@ -76,7 +67,6 @@ class SKDomisiliApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SK Domisili - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -86,9 +76,6 @@ class SKDomisiliApiController extends Controller
         }
     }
 
-    /**
-     * Menampilkan daftar permohonan milik pengguna.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -101,13 +88,10 @@ class SKDomisiliApiController extends Controller
             ->response();
     }
 
-    /**
-     * Menampilkan detail satu permohonan.
-     */
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKDomisili::with('masyarakat')->where('masyarakat_id', $user->id)
             ->where('id', $id)
             ->first();
 

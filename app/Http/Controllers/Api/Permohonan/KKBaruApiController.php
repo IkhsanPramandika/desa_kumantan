@@ -17,31 +17,24 @@ use Illuminate\Support\Str;
 
 class KKBaruApiController extends Controller
 {
-    /**
-     * Menyimpan permohonan KK Baru dari aplikasi mobile.
-     */
     public function store(StoreKKBaruRequest $request)
     {
         $validatedData = $request->validated();
-        $user = $request->user(); // Ini adalah objek Masyarakat yang login
+        $user = $request->user();
         $uploadedFilePaths = [];
 
         try {
-            // Kita hanya akan menyimpan data yang ada kolomnya di tabel permohonan.
-            $dbData = [
-                'masyarakat_id' => $user->id,
-                'status' => 'pending',
-                'catatan_pemohon' => $validatedData['catatan_pemohon'] ?? null,
-            ];
+            $dbData = $validatedData;
+            $dbData['masyarakat_id'] = $user->id;
+            $dbData['status'] = 'pending';
 
-            // Sesuaikan file-file yang dibutuhkan untuk Permohonan KK Baru
             $fileFields = [
                 'surat_pengantar_rt_rw',
-                'kk_lama', // jika menumpang
+                'file_kk',
                 'file_ktp',
-                'buku_nikah_akta_cerai', // jika ada
-                'surat_pindah_datang', // jika pindahan
-                'ijazah_terakhir' // jika ada
+                'buku_nikah_akta_cerai',
+                'surat_pindah_datang',
+                'ijazah_terakhir'
             ];
             $basePath = 'permohonan_kk_baru/lampiran';
 
@@ -60,7 +53,6 @@ class KKBaruApiController extends Controller
 
             $permohonan = PermohonanKKBaru::create($dbData);
 
-            // Mengirim notifikasi ke petugas menggunakan pola yang sudah benar
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
@@ -82,7 +74,6 @@ class KKBaruApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API KK Baru - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -92,9 +83,6 @@ class KKBaruApiController extends Controller
         }
     }
 
-    /**
-     * Menampilkan daftar permohonan milik pengguna.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -107,9 +95,6 @@ class KKBaruApiController extends Controller
             ->response();
     }
 
-    /**
-     * Menampilkan detail satu permohonan.
-     */
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();

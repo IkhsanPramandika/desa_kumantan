@@ -31,8 +31,7 @@ use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
 Route::get('/pengumuman', [PengumumanApiController::class, 'index'])->name('api.pengumuman.index');
 Route::get('/pengumuman/{slug}', [PengumumanApiController::class, 'show'])->name('api.pengumuman.show');
 
-
-
+// Grup untuk registrasi, login, dan lupa password
 Route::prefix('masyarakat')->name('api.masyarakat.')->group(function () {
     Route::post('register', [MasyarakatAuthController::class, 'register'])->name('register');
     Route::post('login', [MasyarakatAuthController::class, 'login'])->name('login');
@@ -51,35 +50,33 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- Rute untuk Notifikasi ---
     Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
-        Route::get('/petugas/notifikasi/baca/{id}', [NotificationController::class, 'readAndRedirect'])->name('petugas.notifikasi.read');
-        Route::put('/baca-semua', [NotificationController::class, 'markAllAsRead'])->name('baca.semua'); // <-- TAMBAHKAN INI
-         Route::post('/user/update-fcm-token', [NotificationController::class, 'updateFcmToken'])->middleware('auth:sanctum');
-        
-        });
-
-    // --- Rute untuk Profil & Logout ---
-    Route::prefix('masyarakat')->name('api.masyarakat.auth.')->group(function () {
-        Route::post('logout', [MasyarakatAuthController::class, 'logout'])->name('logout');
-        Route::get('profil', [MasyarakatAuthController::class, 'profil'])->name('profil');
-        Route::put('profil', [MasyarakatAuthController::class, 'updateProfil'])->name('updateProfil');
-            Route::put('password', [MasyarakatAuthController::class, 'changePassword'])->name('password.change');
+        Route::put('/baca-semua', [NotificationController::class, 'markAllAsRead'])->name('baca.semua');
+        Route::post('/user/update-fcm-token', [NotificationController::class, 'updateFcmToken']);
     });
 
-   
     /*
     |--------------------------------------------------------------------------
-    | Grup Rute untuk Semua Jenis Permohonan
+    | >> SEMUA RUTE APLIKASI MOBILE DI DALAM GRUP INI <<
     |--------------------------------------------------------------------------
-    | Menggunakan Route::apiResource untuk menyingkat definisi rute
-    | index(), store(), dan show(). Rute 'download' didefinisikan secara manual.
+    | Ini membuat semua URL konsisten: /api/masyarakat/...
     */
     Route::prefix('masyarakat')->name('api.masyarakat.auth.')->group(function () {
-        // Fungsi helper untuk membuat rute download
+        
+        // --- Profil, Logout, Ganti Password ---
+        Route::get('profil', [MasyarakatAuthController::class, 'profil'])->name('profil');
+        Route::put('profil', [MasyarakatAuthController::class, 'updateProfil'])->name('updateProfil');
+        Route::put('password', [MasyarakatAuthController::class, 'changePassword'])->name('password.change');
+        Route::post('logout', [MasyarakatAuthController::class, 'logout'])->name('logout');
+
+        // --- Riwayat & Detail Permohonan (Terpusat) ---
+        Route::get('riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index'])->name('riwayat.index');
+        Route::get('permohonan/{jenis_surat_slug}/{id}', [RiwayatPermohonanController::class, 'show'])->name('riwayat.detail');
+
+        // --- Pengajuan & Download Permohonan ---
         $addDownloadRoute = function ($prefix, $controller) {
-            Route::get("/{$prefix}/{id}/download", [$controller, 'downloadHasil'])->name("{$prefix}.download");
+            Route::get("{$prefix}/{id}/download", [$controller, 'downloadHasil'])->name("{$prefix}.download");
         };
 
-        // Menggunakan apiResource untuk menyingkat
         Route::apiResource('permohonan-kk-baru', KKBaruApiController::class)->except(['update', 'destroy']);
         $addDownloadRoute('permohonan-kk-baru', KKBaruApiController::class);
 
@@ -107,14 +104,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('permohonan-sk-usaha', SKUsahaApiController::class)->except(['update', 'destroy']);
         $addDownloadRoute('permohonan-sk-usaha', SKUsahaApiController::class);
 
-        // --- Rute untuk Riwayat Terpusat ---
-        Route::get('/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index']);
-        Route::get('/masyarakat/riwayat-semua-permohonan', [RiwayatPermohonanController::class, 'index'])->name('api.masyarakat.auth.riwayat.semua');
-        
-      
-        Route::get('/permohonan/{jenis_surat_slug}/{id}', [RiwayatPermohonanController::class, 'show']);
-    });
+         /*
+        |--------------------------------------------------------------------------
+        | >> BLOK BARU: RUTE UNTUK DRAFT PERMOHONAN <<
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('draft')->name('draft.')->group(function() {
+            // Contoh untuk SK Usaha. Ulangi pola ini untuk permohonan lain.
+            Route::post('permohonan-sk-usaha', [\App\Http\Controllers\Api\Permohonan\SKUsahaApiController::class, 'storeAsDraft'])->name('sk-usaha.store');
+            Route::put('permohonan-sk-usaha/{id}', [\App\Http\Controllers\Api\Permohonan\SKUsahaApiController::class, 'updateDraft'])->name('sk-usaha.update');
+            Route::delete('permohonan-sk-usaha/{id}', [\App\Http\Controllers\Api\Permohonan\SKUsahaApiController::class, 'destroyDraft'])->name('sk-usaha.destroy');
 
+
+        
+    });
 });
 
 // Rute fallback standar
@@ -122,3 +125,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+
+});

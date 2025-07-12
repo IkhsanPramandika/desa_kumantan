@@ -80,7 +80,7 @@ class RiwayatPermohonanController extends Controller
 
         // [PERUBAHAN] Menambahkan data baru ke response
         $item->tanggal = $tanggalPengajuan->isoFormat('D MMMM YYYY, HH:mm'); // Format tanggal sekarang termasuk jam
-        $item->estimasi_selesai = $tanggalPengajuan->addWeekdays(1)->isoFormat('D MMMM YYYY'); // Tambah 3 hari kerja sebagai estimasi
+        $item->estimasi_selesai = $tanggalPengajuan->addWeekdays(1)->isoFormat('D MMMM YYYY'); 
 
         return $item;
         });

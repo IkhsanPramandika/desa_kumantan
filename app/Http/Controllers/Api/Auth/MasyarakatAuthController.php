@@ -24,25 +24,25 @@ class MasyarakatAuthController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
-        Log::info('[MasyarakatAuthController - Register] Menerima request registrasi baru.');
+       Log::info('[MasyarakatAuthController - Register] Menerima request registrasi baru.');
         $validator = Validator::make($request->all(), [
             'nik' => 'required|string|digits:16|unique:masyarakat,nik',
             'nama_lengkap' => 'required|string|max:255',
             'nomor_hp' => 'required|string|max:20|unique:masyarakat,nomor_hp',
-            'email' => 'required|string|email|max:255|unique:masyarakat,email', // Email dibuat wajib untuk reset password
+            'email' => 'required|string|email|max:255|unique:masyarakat,email',
             'password' => ['required', 'confirmed', PasswordRules::min(8)->mixedCase()->numbers()->symbols()],
-            // Data pribadi lainnya bisa opsional saat registrasi awal
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
-            'jenis_kelamin' => 'nullable|string|in:LAKI-LAKI,PEREMPUAN',
+            'jenis_kelamin' => 'nullable|string|in:Laki-laki,Perempuan',
             'alamat_lengkap' => 'nullable|string',
             'rt' => 'nullable|string|max:5',
             'rw' => 'nullable|string|max:5',
             'dusun_atau_lingkungan' => 'nullable|string|max:100',
-            'agama' => 'nullable|string|max:50',
-            'status_perkawinan' => 'nullable|string|max:50',
+            // [PERBAIKAN] Menyamakan dengan nilai enum di database
+            'agama' => 'nullable|string|in:Islam,Kristen Protestan,Katolik,Hindu,Buddha,Konghucu',
+            'status_perkawinan' => 'nullable|string|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati',
             'pekerjaan' => 'nullable|string|max:100',
-            'foto_ktp' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Jika ada upload KTP saat registrasi
+            'foto_ktp' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -183,19 +183,20 @@ class MasyarakatAuthController extends Controller
     Log::info('[MasyarakatAuthController - UpdateProfil] Raw Request Input:', $request->all()); // <-- TAMBAHKAN BARIS INI
     Log::info('[MasyarakatAuthController - UpdateProfil] Data user dari DB sebelum update:', $masyarakat->toArray()); 
     
-        $validator = Validator::make($request->all(), [
+         $validator = Validator::make($request->all(), [
             'nama_lengkap' => 'sometimes|required|string|max:255',
             'nomor_hp' => 'sometimes|required|string|max:20|unique:masyarakat,nomor_hp,' . $masyarakat->id,
             'email' => 'sometimes|required|string|email|max:255|unique:masyarakat,email,' . $masyarakat->id,
             'tempat_lahir' => 'sometimes|nullable|string|max:100',
             'tanggal_lahir' => 'sometimes|nullable|date',
-            'jenis_kelamin' => 'sometimes|nullable|string|in:LAKI-LAKI,PEREMPUAN',
+            'jenis_kelamin' => 'sometimes|nullable|string|in:Laki-laki,Perempuan',
             'alamat_lengkap' => 'sometimes|nullable|string',
             'rt' => 'sometimes|nullable|string|max:5',
             'rw' => 'sometimes|nullable|string|max:5',
             'dusun_atau_lingkungan' => 'sometimes|nullable|string|max:100',
-            'agama' => 'sometimes|nullable|string|max:50',
-            'status_perkawinan' => 'sometimes|nullable|string|max:50',
+            // [PERBAIKAN] Menyamakan dengan nilai enum di database
+            'agama' => 'sometimes|nullable|string|in:Islam,Kristen Protestan,Katolik,Hindu,Buddha,Konghucu',
+            'status_perkawinan' => 'sometimes|nullable|string|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati',
             'pekerjaan' => 'sometimes|nullable|string|max:100',
             'foto_ktp' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);

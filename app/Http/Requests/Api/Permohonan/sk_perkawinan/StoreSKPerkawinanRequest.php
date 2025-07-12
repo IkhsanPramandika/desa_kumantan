@@ -2,57 +2,72 @@
 
 namespace App\Http\Requests\Api\Permohonan\sk_perkawinan;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Auth;
 
 class StoreSKPerkawinanRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
+    public function authorize(): bool
     {
-        return true; // Izinkan semua pengguna yang terotentikasi
+        return Auth::guard('sanctum')->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, mixed>
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
-            // Data Mempelai Pria
             'nama_pria' => 'required|string|max:255',
-            'nik_pria' => 'required|string|size:16',
-            'tempat_lahir_pria' => 'required|string|max:100',
+            'nik_pria' => 'required|string|max:16',
+            'tempat_lahir_pria' => 'required|string|max:255',
             'tanggal_lahir_pria' => 'required|date',
-            'alamat_pria' => 'required|string|max:500',
-
-            // Data Mempelai Wanita
+            'alamat_pria' => 'required|string',
             'nama_wanita' => 'required|string|max:255',
-            'nik_wanita' => 'required|string|size:16',
-            'tempat_lahir_wanita' => 'required|string|max:100',
+            'nik_wanita' => 'required|string|max:16',
+            'tempat_lahir_wanita' => 'required|string|max:255',
             'tanggal_lahir_wanita' => 'required|date',
-            'alamat_wanita' => 'required|string|max:500',
+            'alamat_wanita' => 'required|string',
+            'tanggal_akad' => 'required|date',
+            'tempat_akad' => 'required|string|max:255',
+            'file_kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'file_ktp_mempelai' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'surat_nikah_orang_tua' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'kartu_imunisasi_catin' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'sertifikat_elsimil' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'akta_penceraian' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'catatan_pemohon' => 'nullable|string',
+        ];
+    }
 
-            // Detail Akad
-            'tanggal_akad_nikah' => 'required|date',
-            'tempat_akad_nikah' => 'required|string|max:255',
-            'pemohon_surat' => 'required|in:pria,wanita',
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Data yang diberikan tidak valid.',
+            'errors' => $validator->errors(),
+        ], 422));
+    }
 
-            // Catatan
-            'catatan_pemohon' => 'nullable|string|max:1000',
-
-            // Lampiran File
-            'file_kk' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'file_ktp_mempelai' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'surat_nikah_orang_tua' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'kartu_imunisasi_catin' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'sertifikat_elsimil' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'akta_penceraian' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+    public function messages(): array
+    {
+        return [
+            'nama_pria.required' => 'Nama mempelai pria wajib diisi.',
+            'nik_pria.required' => 'NIK mempelai pria wajib diisi.',
+            'tempat_lahir_pria.required' => 'Tempat lahir mempelai pria wajib diisi.',
+            'tanggal_lahir_pria.required' => 'Tanggal lahir mempelai pria wajib diisi.',
+            'alamat_pria.required' => 'Alamat mempelai pria wajib diisi.',
+            'nama_wanita.required' => 'Nama mempelai wanita wajib diisi.',
+            'nik_wanita.required' => 'NIK mempelai wanita wajib diisi.',
+            'tempat_lahir_wanita.required' => 'Tempat lahir mempelai wanita wajib diisi.',
+            'tanggal_lahir_wanita.required' => 'Tanggal lahir mempelai wanita wajib diisi.',
+            'alamat_wanita.required' => 'Alamat mempelai wanita wajib diisi.',
+            'tanggal_akad.required' => 'Tanggal akad wajib diisi.',
+            'tempat_akad.required' => 'Tempat akad wajib diisi.',
+            'file_kk.mimes' => 'Format file KK harus PDF, JPG, atau PNG.',
+            'file_ktp_mempelai.mimes' => 'Format file KTP harus PDF, JPG, atau PNG.',
+            'surat_nikah_orang_tua.mimes' => 'Format surat nikah orang tua harus PDF, JPG, atau PNG.',
+            'kartu_imunisasi_catin.mimes' => 'Format kartu imunisasi harus PDF, JPG, atau PNG.',
+            'sertifikat_elsimil.mimes' => 'Format sertifikat elsimil harus PDF, JPG, atau PNG.',
+            'akta_penceraian.mimes' => 'Format akta penceraian harus PDF, JPG, atau PNG.',
         ];
     }
 }

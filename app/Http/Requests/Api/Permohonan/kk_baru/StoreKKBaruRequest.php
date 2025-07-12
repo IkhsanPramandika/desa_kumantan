@@ -1,77 +1,55 @@
 <?php
 
-// Lokasi file: app/Http/Requests/Api/Permohonan/KkBaru/StoreKKBaruRequest.php
-namespace App\Http\Requests\Api\Permohonan\kk_baru; // Namespace sesuai struktur folder Anda
+namespace App\Http\Requests\Api\Permohonan\kk_baru;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth; // Untuk Sanctum guard
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Auth;
 
-class StoreKKBaruRequest extends FormRequest 
+class StoreKKBaruRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
     public function authorize(): bool
     {
-        // Izinkan jika pengguna terautentikasi melalui guard 'sanctum' (untuk API masyarakat)
         return Auth::guard('sanctum')->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            // Validasi berdasarkan field di model PermohonananKKBaru
-            // Sesuaikan 'required' atau 'nullable' berdasarkan kebutuhan form pengajuan KK Baru
-            'file_kk'                 => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // KK lama atau KK orang tua (jika pisah KK)
-            'file_ktp'                => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // KTP Pemohon (Kepala Keluarga baru)
-            'surat_pengantar_rt_rw'   => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'buku_nikah_akta_cerai'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, tergantung kasus
-            'surat_pindah_datang'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, jika ada anggota yang pindah masuk
-            'ijazah_terakhir'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Opsional, mungkin untuk data pendidikan anggota keluarga
-            'catatan_pemohon'         => 'nullable|string|max:1000', // Catatan dari pemohon
+            'surat_pengantar_rt_rw' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'buku_nikah_akta_cerai' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'file_kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'file_ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'surat_pindah_datang' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'ijazah_terakhir' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'catatan_pemohon' => 'nullable|string',
         ];
     }
 
-    protected function prepareForValidation()
+    protected function failedValidation(Validator $validator)
     {
-        // Periksa apakah request dari mobile app mengirim field bernama 'catatan'
-        if ($this->has('catatan')) {
-            // Jika ada, buat field baru bernama 'catatan_pemohon' dengan isi yang sama.
-            // Dan hapus field 'catatan' yang lama agar tidak ada duplikasi.
-            $this->merge([
-                'catatan_pemohon' => $this->input('catatan'),
-            ]);
-            $this->request->remove('catatan');
-        }
+        throw new HttpResponseException(response()->json([
+            'message' => 'Data yang diberikan tidak valid.',
+            'errors' => $validator->errors(),
+        ], 422));
     }
 
-    /**
-     * Get custom messages for validator errors.
-     *
-     * @return array
-     */
-
-     
     public function messages(): array
     {
         return [
-            'file_kk.required' => 'File Kartu Keluarga wajib diunggah.',
-            'file_kk.mimes' => 'Format File Kartu Keluarga harus PDF, JPG, JPEG, atau PNG.',
+            'surat_pengantar_rt_rw.mimes' => 'Format Surat Pengantar harus PDF, JPG, atau PNG.',
+            'surat_pengantar_rt_rw.max' => 'Ukuran Surat Pengantar maksimal 2MB.',
+            'buku_nikah_akta_cerai.mimes' => 'Format Buku Nikah/Akta Cerai harus PDF, JPG, atau PNG.',
+            'buku_nikah_akta_cerai.max' => 'Ukuran Buku Nikah/Akta Cerai maksimal 2MB.',
+            'file_kk.mimes' => 'Format File Kartu Keluarga harus PDF, JPG, atau PNG.',
             'file_kk.max' => 'Ukuran File Kartu Keluarga maksimal 2MB.',
-            'file_ktp.required' => 'File KTP Pemohon wajib diunggah.',
-            'file_ktp.mimes' => 'Format File KTP Pemohon harus PDF, JPG, JPEG, atau PNG.',
-            'file_ktp.max' => 'Ukuran File KTP Pemohon maksimal 2MB.',
-            'surat_pengantar_rt_rw.required' => 'Surat Pengantar RT/RW wajib diunggah.',
-            'surat_pengantar_rt_rw.mimes' => 'Format Surat Pengantar RT/RW harus PDF, JPG, JPEG, atau PNG.',
-            'surat_pengantar_rt_rw.max' => 'Ukuran Surat Pengantar RT/RW maksimal 2MB.',
-            // Tambahkan pesan kustom untuk validasi field lain jika perlu
+            'file_ktp.mimes' => 'Format File KTP harus PDF, JPG, atau PNG.',
+            'file_ktp.max' => 'Ukuran File KTP maksimal 2MB.',
+            'surat_pindah_datang.mimes' => 'Format Surat Pindah Datang harus PDF, JPG, atau PNG.',
+            'surat_pindah_datang.max' => 'Ukuran Surat Pindah Datang maksimal 2MB.',
+            'ijazah_terakhir.mimes' => 'Format Ijazah Terakhir harus PDF, JPG, atau PNG.',
+            'ijazah_terakhir.max' => 'Ukuran Ijazah Terakhir maksimal 2MB.',
         ];
     }
 }

@@ -97,6 +97,6 @@ class PermohonanSKPerkawinan extends Model implements PermohonanInterface
     public function getRouteTujuan(): string
     {
         // Pastikan nama route ini benar
-        return route('petugas.permohonan-kk-baru.show', $this->id);
+        return route('petugas.permohonan-sk-perkawinan.show', $this->id);
     }
 }

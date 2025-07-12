@@ -17,22 +17,17 @@ use Illuminate\Support\Str;
 
 class SKKelahiranApiController extends Controller
 {
-    /**
-     * Menyimpan permohonan SK Kelahiran baru dari aplikasi mobile.
-     */
     public function store(StoreSKKelahiranRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
-        $user = $request->user(); // Ini adalah objek Masyarakat yang login
+        $user = $request->user();
         $uploadedFilePaths = [];
 
         try {
-            // Mengambil semua data yang divalidasi dan menambahkan data sistem
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
             $dbData['status'] = 'pending';
 
-            // Menangani upload file lampiran
             $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw', 'surat_nikah_orangtua', 'surat_keterangan_kelahiran'];
             $basePath = 'permohonan_sk_kelahiran/lampiran';
 
@@ -51,11 +46,9 @@ class SKKelahiranApiController extends Controller
             
             $permohonan = PermohonanSKKelahiran::create($dbData);
 
-            // Mengirim notifikasi ke petugas menggunakan pola yang paling aman
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
                 if ($semuaPetugas->isNotEmpty()) {
-                    // Siapkan semua data matang di sini
                     $title = $permohonan->getJudulNotifikasi();
                     $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
                     $url = $permohonan->getRouteTujuan();
@@ -74,7 +67,6 @@ class SKKelahiranApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[API SK Kelahiran - Store] Gagal menyimpan: ' . $e->getMessage());
-            // Cleanup file jika terjadi error
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
@@ -84,9 +76,6 @@ class SKKelahiranApiController extends Controller
         }
     }
 
-    /**
-     * Menampilkan daftar permohonan milik pengguna.
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -99,9 +88,6 @@ class SKKelahiranApiController extends Controller
             ->response();
     }
 
-    /**
-     * Menampilkan detail satu permohonan.
-     */
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
