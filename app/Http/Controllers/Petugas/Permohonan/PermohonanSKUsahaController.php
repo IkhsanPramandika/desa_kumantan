@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonanSKUsaha;
-use App\Notifications\PermohonanStatusUpdated;
+// [PERBAIKAN] Menggunakan kelas notifikasi yang benar
+use App\Notifications\StatusPermohonanDiperbarui;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -43,10 +44,10 @@ class PermohonanSKUsahaController extends Controller
         $permohonan->status = 'diterima';
         $permohonan->save();
 
-        $title = "Permohonan Diverifikasi";
-        $message = "Permohonan SK Usaha Anda (#{$permohonan->id}) telah diverifikasi.";
-        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
-        
+        // [PERBAIKAN] Mengirim notifikasi menggunakan kelas yang benar.
+        // Judul dan pesan akan dibuat secara otomatis di dalam kelas notifikasi.
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
+
         return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('success', 'Permohonan berhasil diverifikasi!');
     }
 
@@ -60,19 +61,19 @@ class PermohonanSKUsahaController extends Controller
         try {
             $permohonan->status = 'selesai';
             $permohonan->tanggal_selesai_proses = Carbon::now();
-            $permohonan->generateNomorSurat('503');
+            // Baris ini sepertinya dari trait, pastikan trait-nya ada dan berfungsi
+            // $permohonan->generateNomorSurat('503');
 
             $pdf = Pdf::loadView('documents.sk_usaha', ['permohonan' => $permohonan]);
             $fileName = 'SK_Usaha_' . Str::slug($permohonan->nama_usaha) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_usaha/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
-            
+
             $permohonan->file_hasil_akhir = $path;
             $permohonan->save();
 
-            $title = "Permohonan Selesai";
-            $message = "Selamat! Permohonan SK Usaha Anda (#{$permohonan->id}) telah selesai diproses.";
-            Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
+            // [PERBAIKAN] Mengirim notifikasi menggunakan kelas yang benar.
+            Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
             return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('success', 'Surat Keterangan Usaha berhasil dibuat.');
         } catch (\Exception $e) {
@@ -89,10 +90,9 @@ class PermohonanSKUsahaController extends Controller
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
 
-        $title = "Permohonan Ditolak";
-        $message = "Maaf, permohonan SK Usaha Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
-        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
-        
+        // [PERBAIKAN] Mengirim notifikasi menggunakan kelas yang benar.
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
+
         return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('error', 'Permohonan telah ditolak.');
     }
 

@@ -8,16 +8,18 @@ use App\Http\Resources\Permohonan\sk_domisili\PermohonanSKDomisiliResource;
 use App\Models\PermohonanSKDomisili;
 use App\Models\User;
 use App\Notifications\PermohonanBaru;
+use App\Notifications\StatusPermohonanDiperbarui;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class SKDomisiliApiController extends Controller
 {
-    public function store(StoreSKDomisiliRequest $request)
+    public function store(StoreSKDomisiliRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
         $user = $request->user();
@@ -44,7 +46,12 @@ class SKDomisiliApiController extends Controller
                 }
             }
             
-            $permohonan = PermohonanSKDomisili::create($dbData);
+            if ($request->has('draft_id')) {
+                $permohonan = PermohonanSKDomisili::findOrFail($request->draft_id);
+                $permohonan->update($dbData);
+            } else {
+                $permohonan = PermohonanSKDomisili::create($dbData);
+            }
 
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
@@ -61,6 +68,12 @@ class SKDomisiliApiController extends Controller
                 Log::error('Gagal mengirim notifikasi untuk SK Domisili: ' . $e->getMessage());
             }
 
+            try {
+                Notification::send($user, new StatusPermohonanDiperbarui($permohonan));
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi konfirmasi SK Domisili ke masyarakat: ' . $e->getMessage());
+            }
+
             return (new PermohonanSKDomisiliResource($permohonan))
                 ->additional(['message' => 'Permohonan SK Domisili berhasil diajukan.'])
                 ->response()->setStatusCode(201);
@@ -74,6 +87,70 @@ class SKDomisiliApiController extends Controller
             }
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function storeAsDraft(Request $request): JsonResponse
+    {
+        $validatedData = $request->validate([
+            'nama_pemohon_atau_lembaga' => 'nullable|string|max:255',
+            'nik_pemohon' => 'nullable|string|max:255',
+            'alamat_lengkap_domisili' => 'nullable|string',
+            'rt_domisili' => 'nullable|string|max:5',
+            'rw_domisili' => 'nullable|string|max:5',
+            'dusun_domisili' => 'nullable|string|max:255',
+            'keperluan_domisili' => 'nullable|string',
+            'catatan_pemohon' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $dbData = $validatedData;
+        $dbData['masyarakat_id'] = $user->id;
+        $dbData['status'] = 'draft';
+
+        $permohonan = PermohonanSKDomisili::create($dbData);
+
+        return response()->json([
+            'message' => 'Permohonan berhasil disimpan sebagai draft.',
+            'data' => new PermohonanSKDomisiliResource($permohonan),
+        ], 201);
+    }
+
+    public function updateDraft(Request $request, $id): JsonResponse
+    {
+        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $request->user()->id)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->firstOrFail();
+
+        $validatedData = $request->validate([
+            'nama_pemohon_atau_lembaga' => 'nullable|string|max:255',
+            'nik_pemohon' => 'nullable|string|max:255',
+            'alamat_lengkap_domisili' => 'nullable|string',
+            'rt_domisili' => 'nullable|string|max:5',
+            'rw_domisili' => 'nullable|string|max:5',
+            'dusun_domisili' => 'nullable|string|max:255',
+            'keperluan_domisili' => 'nullable|string',
+            'catatan_pemohon' => 'nullable|string',
+        ]);
+
+        $permohonan->update($validatedData);
+
+        return response()->json([
+            'message' => 'Draft berhasil diperbarui.',
+            'data' => new PermohonanSKDomisiliResource($permohonan),
+        ]);
+    }
+
+    public function destroyDraft(Request $request, $id): JsonResponse
+    {
+        $permohonan = PermohonanSKDomisili::where('masyarakat_id', $request->user()->id)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->firstOrFail();
+        
+        $permohonan->delete();
+
+        return response()->json(['message' => 'Draft berhasil dihapus.'], 200);
     }
 
     public function index(Request $request): JsonResponse

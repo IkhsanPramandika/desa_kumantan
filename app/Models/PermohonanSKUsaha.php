@@ -6,11 +6,16 @@ use App\Interfaces\PermohonanInterface;
 use App\Traits\NomorSuratGenerator; // 1. Pastikan ini di-include kembali
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
-class PermohonanSKUsaha extends Model implements PermohonanInterface
+
+
+
+class PermohonanSKUsaha extends Model 
 {
     // 2. Aktifkan kembali generator dengan baris ini
     use HasFactory, NomorSuratGenerator;
+    
 
     /**
      * 3. Aktifkan kembali "saklar" ini agar generator berjalan.
@@ -19,6 +24,7 @@ class PermohonanSKUsaha extends Model implements PermohonanInterface
     public string $kodeKlasifikasiSurat = '503';
 
     protected $table = 'permohonan_sk_usaha';
+    protected $guarded = ['id'];
 
     protected $fillable = [
         'masyarakat_id', 'file_kk', 'file_ktp', 'nama_pemohon', 'nik_pemohon',
@@ -34,28 +40,23 @@ class PermohonanSKUsaha extends Model implements PermohonanInterface
         'tanggal_selesai_proses' => 'datetime',
     ];
 
-    public function masyarakat()
+   public function masyarakat()
     {
-        return $this->belongsTo(Masyarakat::class);
+        return $this->belongsTo(Masyarakat::class, 'masyarakat_id');
     }
 
     public function getJudulNotifikasi(): string
     {
-        return "Permohonan SK Usaha";
+        return 'Surat Keterangan Usaha (ID: ' . $this->id . ')';
     }
 
-    public function getPemohon(): \App\Models\Masyarakat
+    public function getRouteTujuan(): string
     {
-        return $this->masyarakat;
+        return url('/admin/permohonan-sk-usaha/' . $this->id);
     }
 
     public function getId(): int
     {
         return $this->id;
-    }
-
-    public function getRouteTujuan(): string
-    {
-        return route('petugas.permohonan-sk-usaha.show', $this->id);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log; // Pastikan ini ada
 
 class NotificationController extends Controller
 {
@@ -44,10 +45,25 @@ class NotificationController extends Controller
     }
 
     public function updateFcmToken(Request $request)
-        {
-            $request->validate(['fcm_token' => 'required|string']);
-            $request->user()->update(['fcm_token' => $request->fcm_token]);
-            return response()->json(['message' => 'FCM token updated successfully.']);
+    {
+        $request->validate(['fcm_token' => 'required|string']);
+
+        $user = $request->user();
+
+        if ($user) {
+            try {
+                $user->update(['fcm_token' => $request->fcm_token]);
+                Log::info('[NotificationController] FCM token berhasil diperbarui untuk user ID: ' . $user->id . ' (Tabel: ' . $user->getTable() . ')');
+                return response()->json(['message' => 'FCM token updated successfully.']);
+            } catch (\Exception $e) {
+                Log::error('[NotificationController] Gagal memperbarui FCM token untuk user ID: ' . $user->id . ' (Tabel: ' . $user->getTable() . '): ' . $e->getMessage());
+                return response()->json(['message' => 'Failed to update FCM token.', 'error' => $e->getMessage()], 500);
+            }
+        } else {
+            Log::warning('[NotificationController] Percobaan update FCM token oleh user tidak terautentikasi.');
+            return response()->json(['message' => 'User not authenticated.'], 401);
         }
+    }
+
 
 }

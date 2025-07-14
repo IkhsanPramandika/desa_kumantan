@@ -1,50 +1,85 @@
 <?php
 
+// ===================================================================
+// File: app/Notifications/PengumumanBaru.php (Final - Hybrid Payload)
+// ===================================================================
+
 namespace App\Notifications;
 
 use App\Models\Pengumuman;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\Fcm\FcmChannel;
+use Illuminate\Support\Facades\Log;
+use NotificationChannels\Fcm\FcmMessage;
+use Kreait\Firebase\Messaging\AndroidConfig;
 
-class PengumumanBaru extends Notification
+class PengumumanBaru extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected $pengumuman;
+    protected Pengumuman $pengumuman;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(Pengumuman $pengumuman)
     {
         $this->pengumuman = $pengumuman;
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
-        // Kita akan menyimpannya ke database
-        return ['database'];
+        $channels = ['database'];
+        if ($notifiable->fcm_token) {
+            $channels[] = FcmChannel::class;
+        }
+        return $channels;
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'judul' => 'Pengumuman Baru Desa',
+            'pesan' => $this->pengumuman->judul,
+            'pengumuman_id' => $this->pengumuman->id,
+            'pengumuman_slug' => $this->pengumuman->slug,
+            'url' => '/pengumuman/' . $this->pengumuman->slug,
+        ];
     }
 
     /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
+     * [PERBAIKAN FINAL] Menggunakan payload hybrid (notification + data)
+     * untuk kompatibilitas maksimal di semua perangkat.
      */
-    public function toArray(object $notifiable): array
+    public function toFcm(object $notifiable): FcmMessage
     {
-        // Ini adalah struktur data yang akan diterima oleh aplikasi Flutter
-        return [
-            'title' => 'Pengumuman Baru Desa',
-            'message' => $this->pengumuman->judul,
-            'link' => '/pengumuman/' . $this->pengumuman->slug, // Opsional, untuk navigasi
-        ];
+        Log::info("[HYBRID FCM - PengumumanBaru] Mengirim notifikasi ke user ID: " . $notifiable->id);
+
+        $title = 'Pengumuman Baru Desa';
+        $body = $this->pengumuman->judul;
+
+        $androidConfig = AndroidConfig::fromArray([
+            'priority' => 'high',
+            'notification' => [
+                'channel_id' => 'high_importance_channel',
+                'sound' => 'default',
+            ],
+        ]);
+
+        return FcmMessage::create()
+            // Bagian 1: setNotification() untuk ditampilkan langsung oleh OS
+            ->setNotification([
+                'title' => $title,
+                'body' => $body,
+            ])
+            // Bagian 2: setData() untuk membawa data tambahan
+            ->setData([
+                'title' => $title,
+                'body' => $body,
+                'pengumuman_id' => (string) $this->pengumuman->id,
+                'pengumuman_slug' => $this->pengumuman->slug,
+                'jenis_notifikasi' => 'pengumuman_baru',
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            ])
+            ->setAndroid($androidConfig);
     }
 }

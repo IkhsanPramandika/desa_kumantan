@@ -1,26 +1,28 @@
 <?php
 
+// ===================================================================
+// File: app/Notifications/PermohonanBaru.php (Final - Hybrid Payload)
+// ===================================================================
+
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
+use Illuminate\Support\Facades\Log;
 use NotificationChannels\Fcm\FcmMessage;
+use Kreait\Firebase\Messaging\AndroidConfig;
 
 class PermohonanBaru extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    // [REFACTOR] Properti sekarang menyimpan data mentah, bukan objek
     public string $title;
     public string $message;
     public string $url;
     public int $permohonanId;
 
-    /**
-     * [REFACTOR] Constructor sekarang menerima data yang sudah jadi.
-     */
     public function __construct(string $title, string $message, string $url, int $permohonanId)
     {
         $this->title = $title;
@@ -29,9 +31,6 @@ class PermohonanBaru extends Notification implements ShouldQueue
         $this->permohonanId = $permohonanId;
     }
 
-    /**
-     * Method via() tidak perlu diubah.
-     */
     public function via($notifiable): array
     {
         $channels = ['database'];
@@ -41,40 +40,47 @@ class PermohonanBaru extends Notification implements ShouldQueue
         return $channels;
     }
 
-    /**
-     * [REFACTOR] Method toArray() sekarang hanya menggunakan data yang sudah ada.
-     * Tidak ada lagi query ke database.
-     */
     public function toArray($notifiable): array
     {
-       
-    $dataToSave = [
-        'pesan' => $this->message,
-        'permohonan_id' => $this->permohonanId,
-        'url' => $this->url,
-    ];
-
-    // [TES DEBUGGING FINAL]
-    // Kita log data ini untuk melihat isinya persis sebelum disimpan
-    \Illuminate\Support\Facades\Log::info('DATA YANG AKAN DISIMPAN KE DB NOTIFIKASI:', $dataToSave);
-
-    return $dataToSave;
+        return [
+            'judul' => $this->title,
+            'pesan' => $this->message,
+            'permohonan_id' => $this->permohonanId,
+            'url' => $this->url,
+        ];
     }
 
     /**
-     * [REFACTOR] Method toFcm() juga hanya menggunakan data yang sudah ada.
+     * [PERBAIKAN FINAL] Menggunakan payload hybrid (notification + data)
+     * untuk kompatibilitas maksimal di semua perangkat.
      */
     public function toFcm($notifiable): FcmMessage
     {
+        Log::info("[HYBRID FCM - PermohonanBaru] Mengirim notifikasi ke user ID: " . $notifiable->id);
+
+        $androidConfig = AndroidConfig::fromArray([
+            'priority' => 'high',
+            'notification' => [
+                'channel_id' => 'high_importance_channel',
+                'sound' => 'default',
+            ],
+        ]);
+
         return FcmMessage::create()
+            // Bagian 1: setNotification() untuk ditampilkan langsung oleh OS
             ->setNotification([
                 'title' => $this->title,
                 'body' => $this->message,
             ])
+            // Bagian 2: setData() untuk membawa data tambahan
             ->setData([
+                'title' => $this->title,
+                'body' => $this->message,
                 'permohonan_id' => (string) $this->permohonanId,
-                'jenis_notifikasi' => str_replace(' ', '_', strtolower($this->title)),
+                'jenis_notifikasi' => 'permohonan_baru_untuk_petugas',
                 'url_webview' => $this->url,
-            ]);
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            ])
+            ->setAndroid($androidConfig);
     }
 }

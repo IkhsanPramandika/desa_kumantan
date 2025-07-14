@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\Permohonan;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon; // Jangan lupa import Carbon
+use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Carbon\Carbon;
 
-// Import semua model permohonan Anda
 use App\Models\PermohonanKKBaru;
 use App\Models\PermohonanKKHilang;
 use App\Models\PermohonanKKPerubahanData;
@@ -20,108 +20,93 @@ use App\Models\PermohonanSKUsaha;
 
 class RiwayatPermohonanController extends Controller
 {
-    /**
-     * Mengambil, menggabungkan, dan mengurutkan semua riwayat permohonan
-     * dari semua jenis surat untuk pengguna yang sedang login.
-     */
     public function index(Request $request)
     {
         $user = $request->user();
 
-
-        // Daftar semua model dan nama jenis suratnya untuk diseragamkan
         $permohonanTypes = [
-            PermohonanKKBaru::class => 'Permohonan KK Baru',
-            PermohonanKKHilang::class => 'Permohonan KK Hilang',
-            PermohonanKKPerubahanData::class => 'Perubahan Data KK',
-            PermohonanSKAhliWaris::class => 'SK Ahli Waris',
-            PermohonanSKDomisili::class => 'SK Domisili',
-            PermohonanSKKelahiran::class => 'SK Kelahiran',
-            PermohonanSKPerkawinan::class => 'SK Perkawinan',
-            PermohonanSKTidakMampu::class => 'SK Tidak Mampu',
-            PermohonanSKUsaha::class => 'SK Usaha',
+            'permohonan-kk-baru' => ['model' => PermohonanKKBaru::class, 'nama' => 'Permohonan KK Baru'],
+            'permohonan-kk-hilang' => ['model' => PermohonanKKHilang::class, 'nama' => 'Permohonan KK Hilang'],
+            'permohonan-kk-perubahan-data' => ['model' => PermohonanKKPerubahanData::class, 'nama' => 'Perubahan Data KK'],
+            'permohonan-sk-ahli-waris' => ['model' => PermohonanSKAhliWaris::class, 'nama' => 'SK Ahli Waris'],
+            'permmohonan-sk-domisili' => ['model' => PermohonanSKDomisili::class, 'nama' => 'SK Domisili'],
+            'permohonan-sk-kelahiran' => ['model' => PermohonanSKKelahiran::class, 'nama' => 'SK Kelahiran'],
+            'permohonansk-perkawinan' => ['model' => PermohonanSKPerkawinan::class, 'nama' => 'SK Perkawinan'],
+            'permohonan-sk-tidak-mampu' => ['model' => PermohonanSKTidakMampu::class, 'nama' => 'SK Tidak Mampu'],
+            'permohonan-sk-usaha' => ['model' => PermohonanSKUsaha::class, 'nama' => 'SK Usaha'],
         ];
 
-        $baseQuery = null;  
+        $allPermohonan = new Collection();
 
-        foreach ($permohonanTypes as $modelClass => $jenisSurat) {
-            $model = new $modelClass();
-            $modelTable = $model->getTable(); // Mengambil nama tabel secara dinamis
+        foreach ($permohonanTypes as $slug => $details) {
+            $modelClass = $details['model'];
+            $permohonan = $modelClass::where('masyarakat_id', $user->id)->get();
 
-            // [PERBAIKAN] Menambahkan JOIN ke tabel masyarakat
-            $query = $modelClass::query()
-                ->join('masyarakat', "{$modelTable}.masyarakat_id", '=', 'masyarakat.id')
-                ->select(
-                    "{$modelTable}.id",
-                    DB::raw("'$jenisSurat' as jenis_surat"),
-                    "{$modelTable}.created_at as tanggal",
-                    "{$modelTable}.status",
-                    'masyarakat.nama_lengkap as nama_pemohon' // <-- Menambahkan nama pemohon
-                )
-                ->where("{$modelTable}.masyarakat_id", $user->id);
+            $permohonan->transform(function ($item) use ($slug, $details) {
+                $item->jenis_surat = $details['nama'];
+                $item->jenis_surat_slug = $slug;
+                return $item;
+            });
 
-            if ($baseQuery === null) {
-                $baseQuery = $query;
-            } else {
-                $baseQuery->unionAll($query);
-            }
+            $allPermohonan = $allPermohonan->merge($permohonan);
         }
 
-        if ($baseQuery === null) {
-            return response()->json(['data' => []]);
-        }
+        $sorted = $allPermohonan->sortByDesc('created_at');
 
-        $riwayat = $baseQuery
-            ->orderBy('tanggal', 'desc')
-            ->paginate(15);
+        $formatted = $sorted->map(function ($item) use ($user) {
+            $tanggalPengajuan = Carbon::parse($item->created_at);
+            
+            $data = $item->toArray();
+            $data['jenis_surat'] = $item->jenis_surat;
+            $data['jenis_surat_slug'] = $item->jenis_surat_slug;
+            $data['tanggal'] = $tanggalPengajuan->isoFormat('D MMMM YYYY, HH:mm');
+            $data['estimasi_selesai'] = $tanggalPengajuan->addWeekdays(1)->isoFormat('D MMMM YYYY');
+            $data['nama_pemohon'] = $item->nama_pemohon ?? $user->nama_lengkap;
 
-        $riwayat->getCollection()->transform(function ($item) {
-        $tanggalPengajuan = Carbon::parse($item->tanggal);
-
-        // [PERUBAHAN] Menambahkan data baru ke response
-        $item->tanggal = $tanggalPengajuan->isoFormat('D MMMM YYYY, HH:mm'); // Format tanggal sekarang termasuk jam
-        $item->estimasi_selesai = $tanggalPengajuan->addWeekdays(1)->isoFormat('D MMMM YYYY'); 
-
-        return $item;
+            return $data;
         });
 
-        return response()->json($riwayat);
+        $perPage = 15;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentPageItems = $formatted->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
-        
+        $paginatedItems = new LengthAwarePaginator($currentPageItems, count($formatted), $perPage, $currentPage, [
+            'path' => LengthAwarePaginator::resolveCurrentPath(),
+        ]);
+
+        return response()->json($paginatedItems);
     }
+
     public function show(Request $request, $jenis_surat_slug, $id)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // Mapping dari slug URL ke nama Model Class yang sebenarnya
-    $modelMap = [
-        'permohonan-kk-baru' => PermohonanKKBaru::class,
-        'perubahan-data-kk' => PermohonanKKPerubahanData::class,
-        'permohonan-kk-hilang' =>PermohonanKKHilang::class,
-        'sk-ahli-waris' => PermohonanSKAhliWaris::class,
-        'sk-kelahiran' =>PermohonanSKKelahiran::class,
-        'sk-domisili' => PermohonanSKDomisili::class,
-        'sk-perkawinan' =>PermohonanSKPerkawinan::class,
-        'sk-tidak-mampu' =>PermohonanSKTidakMampu::class,
-        'sk-usaha' => PermohonanSKUsaha::class,
-    ];
+        $modelMap = [
+            'permohonan-kk-baru' => PermohonanKKBaru::class,
+            'permohonan-kk-perubahan-data' => PermohonanKKPerubahanData::class,
+            'permohonan-kk-hilang' => PermohonanKKHilang::class,
+            'permohonan-sk-ahli-waris' => PermohonanSKAhliWaris::class,
+            'permohonan-sk-kelahiran' => PermohonanSKKelahiran::class,
+            'permohonan-sk-domisili' => PermohonanSKDomisili::class,
+            'permohonan-sk-perkawinan' => PermohonanSKPerkawinan::class,
+            'permohonan-sk-tidak-mampu' => PermohonanSKTidakMampu::class,
+            'permohonan-sk-usaha' => PermohonanSKUsaha::class,
+        ];
 
-    // Cek apakah jenis surat valid
-    if (!isset($modelMap[$jenis_surat_slug])) {
-        return response()->json(['message' => 'Jenis permohonan tidak valid.'], 404);
+        if (!isset($modelMap[$jenis_surat_slug])) {
+            return response()->json(['message' => 'Jenis permohonan tidak valid.'], 404);
+        }
+
+        $modelClass = $modelMap[$jenis_surat_slug];
+        
+        $permohonan = $modelClass::with('masyarakat')->find($id);
+
+        if (!$permohonan || $permohonan->masyarakat_id !== $user->id) {
+            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
+        }
+        
+        $permohonan->jenis_surat = $modelMap[$jenis_surat_slug];
+
+        return response()->json($permohonan);
     }
-
-    $modelClass = $modelMap[$jenis_surat_slug];
-    
-    // Ambil data permohonan lengkap dengan data masyarakat (pemohon)
-    $permohonan = $modelClass::with('masyarakat')->find($id);
-
-    // Validasi: Cek apakah permohonan ada dan milik user yang sedang login
-    if (!$permohonan || $permohonan->masyarakat_id !== $user->id) {
-        return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
-    }
-
-    // Jika Anda punya API Resource, itu lebih baik. Untuk sekarang, kita kirim langsung.
-    return response()->json($permohonan);
-}
 }

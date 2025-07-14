@@ -8,11 +8,13 @@ use App\Http\Resources\Permohonan\sk_perkawinan\PermohonanSKPerkawinanResource;
 use App\Models\PermohonanSKPerkawinan;
 use App\Models\User;
 use App\Notifications\PermohonanBaru;
+use App\Notifications\StatusPermohonanDiperbarui;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class SKPerkawinanApiController extends Controller
@@ -47,7 +49,12 @@ class SKPerkawinanApiController extends Controller
                 }
             }
             
-            $permohonan = PermohonanSKPerkawinan::create($dbData);
+            if ($request->has('draft_id')) {
+                $permohonan = PermohonanSKPerkawinan::findOrFail($request->draft_id);
+                $permohonan->update($dbData);
+            } else {
+                $permohonan = PermohonanSKPerkawinan::create($dbData);
+            }
 
             try {
                 $semuaPetugas = User::where('role', 'petugas')->get();
@@ -62,6 +69,12 @@ class SKPerkawinanApiController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::error('Gagal mengirim notifikasi untuk SK Perkawinan: ' . $e->getMessage());
+            }
+
+            try {
+                Notification::send($user, new StatusPermohonanDiperbarui($permohonan));
+            } catch (\Exception $e) {
+                Log::error('Gagal mengirim notifikasi konfirmasi SK Perkawinan ke masyarakat: ' . $e->getMessage());
             }
 
             return (new PermohonanSKPerkawinanResource($permohonan))
@@ -79,6 +92,80 @@ class SKPerkawinanApiController extends Controller
         }
     }
 
+    public function storeAsDraft(Request $request): JsonResponse
+    {
+        $validatedData = $request->validate([
+            'nama_pria' => 'nullable|string|max:255',
+            'nik_pria' => 'nullable|string|max:16',
+            'tempat_lahir_pria' => 'nullable|string|max:255',
+            'tanggal_lahir_pria' => 'nullable|date',
+            'alamat_pria' => 'nullable|string',
+            'nama_wanita' => 'nullable|string|max:255',
+            'nik_wanita' => 'nullable|string|max:16',
+            'tempat_lahir_wanita' => 'nullable|string|max:255',
+            'tanggal_lahir_wanita' => 'nullable|date',
+            'alamat_wanita' => 'nullable|string',
+            'tanggal_akad' => 'nullable|date',
+            'tempat_akad' => 'nullable|string|max:255',
+            'catatan_pemohon' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $dbData = $validatedData;
+        $dbData['masyarakat_id'] = $user->id;
+        $dbData['status'] = 'draft';
+
+        $permohonan = PermohonanSKPerkawinan::create($dbData);
+
+        return response()->json([
+            'message' => 'Permohonan berhasil disimpan sebagai draft.',
+            'data' => new PermohonanSKPerkawinanResource($permohonan),
+        ], 201);
+    }
+
+    public function updateDraft(Request $request, $id): JsonResponse
+    {
+        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $request->user()->id)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->firstOrFail();
+
+        $validatedData = $request->validate([
+            'nama_pria' => 'nullable|string|max:255',
+            'nik_pria' => 'nullable|string|max:16',
+            'tempat_lahir_pria' => 'nullable|string|max:255',
+            'tanggal_lahir_pria' => 'nullable|date',
+            'alamat_pria' => 'nullable|string',
+            'nama_wanita' => 'nullable|string|max:255',
+            'nik_wanita' => 'nullable|string|max:16',
+            'tempat_lahir_wanita' => 'nullable|string|max:255',
+            'tanggal_lahir_wanita' => 'nullable|date',
+            'alamat_wanita' => 'nullable|string',
+            'tanggal_akad' => 'nullable|date',
+            'tempat_akad' => 'nullable|string|max:255',
+            'catatan_pemohon' => 'nullable|string',
+        ]);
+
+        $permohonan->update($validatedData);
+
+        return response()->json([
+            'message' => 'Draft berhasil diperbarui.',
+            'data' => new PermohonanSKPerkawinanResource($permohonan),
+        ]);
+    }
+
+    public function destroyDraft(Request $request, $id): JsonResponse
+    {
+        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $request->user()->id)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->firstOrFail();
+        
+        $permohonan->delete();
+
+        return response()->json(['message' => 'Draft berhasil dihapus.'], 200);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -94,7 +181,7 @@ class SKPerkawinanApiController extends Controller
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        $permohonan = PermohonanSKPerkawinan::where('masyarakat_id', $user->id)
+        $permohonan = PermohonanSKPerkawinan::with('masyarakat')->where('masyarakat_id', $user->id)
             ->where('id', $id)
             ->first();
 

@@ -81,7 +81,7 @@ class PermohonanSKTidakMampuController extends Controller
         }
     }
 
-    public function tolak(Request $request, $id)
+        public function tolak(Request $request, $id)
     {
         $request->validate(['catatan_penolakan' => 'required|string|max:500']);
         $permohonan = PermohonanSKTidakMampu::with('masyarakat')->findOrFail($id);

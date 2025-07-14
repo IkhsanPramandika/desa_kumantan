@@ -17,6 +17,7 @@ use App\Models\PermohonanSKPerkawinan;
 use App\Models\PermohonanSKTidakMampu;
 use App\Models\PermohonanSKUsaha;
 
+
 class Masyarakat extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -41,7 +42,8 @@ class Masyarakat extends Authenticatable
         'pekerjaan',
         'foto_ktp',
         'status_akun',
-        'catatan_verifikasi',
+        'catatan_verifikasi'
+        ,'fcm_token',
     ];
 
     protected $hidden = [
