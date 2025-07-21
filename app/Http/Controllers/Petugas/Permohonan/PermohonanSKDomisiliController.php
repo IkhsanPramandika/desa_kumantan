@@ -1,4 +1,5 @@
 <?php
+// Lokasi: app/Http/Controllers/Petugas/Permohonan/PermohonanSKDomisiliController.php
 
 namespace App\Http\Controllers\Petugas\Permohonan;
 
@@ -15,11 +16,22 @@ use Illuminate\Support\Str;
 
 class PermohonanSKDomisiliController extends Controller
 {
-    // ... method index, show, verifikasi, editSurat, tolak, downloadFinal tetap sama ...
     public function index(Request $request)
     {
         $query = PermohonanSKDomisili::with('masyarakat')->latest();
-        $data = $query->paginate(10)->withQueryString();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('masyarakat', function($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")->orWhere('nik', 'like', "%{$search}%");
+            })->orWhere('nama_pemohon_atau_lembaga', 'like', "%{$search}%");
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $perPage = $request->input('per_page', 10);
+        $data = $query->paginate($perPage)->withQueryString();
+
         return view('petugas.pengajuan.sk_domisili.index', compact('data'));
     }
 
@@ -48,9 +60,6 @@ class PermohonanSKDomisiliController extends Controller
         return view('petugas.pengajuan.sk_domisili.edit_surat', compact('permohonan'));
     }
 
-    /**
-     * Memproses data dari form edit dan membuat PDF.
-     */
     public function selesaikan(Request $request, $id)
     {
         $validatedData = $request->validate([
@@ -59,6 +68,7 @@ class PermohonanSKDomisiliController extends Controller
             'alamat_lengkap_domisili' => 'required|string',
             'rt_domisili' => 'required|string|max:5',
             'rw_domisili' => 'required|string|max:5',
+            'keperluan_domisili' => 'required|string',
         ]);
 
         $permohonan = PermohonanSKDomisili::with('masyarakat')->findOrFail($id);
@@ -67,33 +77,19 @@ class PermohonanSKDomisiliController extends Controller
         }
 
         try {
-            // 1. Update data permohonan di database
             $permohonan->update($validatedData);
-            
-            // 2. Set semua data yang akan ditampilkan di PDF SEBELUM PDF dibuat
-            $permohonan->generateNomorSurat('474'); 
+            $permohonan->generateNomorSurat('474');
             $permohonan->tanggal_selesai_proses = Carbon::now();
-
-            // --- PERBAIKAN KUNCI ADA DI SINI ---
-            // 3. Buat array data untuk dikirim ke view PDF secara eksplisit
-            $pdfData = [
-                'permohonan' => $permohonan,
-                'tanggal_surat' => $permohonan->tanggal_selesai_proses->isoFormat('D MMMM YYYY'),
-                // Ganti nama variabel '$tanggal_selesai_proses' menjadi '$tanggal_surat' agar lebih jelas
-            ];
-
-            // 4. Generate PDF menggunakan array data yang sudah lengkap
-            $pdf = Pdf::loadView('documents.sk_domisili', $pdfData);
-            $fileName = 'Surat Keterangan Domisili_' . Str::slug($permohonan->nama_pemohon) . '_' . $permohonan->id . '.pdf';
+            
+            $pdf = Pdf::loadView('documents.sk_domisili', ['permohonan' => $permohonan]);
+            $fileName = 'Surat Keterangan Domisili_' . Str::slug($permohonan->nama_pemohon_atau_lembaga) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_domisili/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
             
-            // 5. Simpan path file, ubah status, dan simpan semua perubahan ke database
             $permohonan->file_hasil_akhir = $path;
             $permohonan->status = 'selesai';
             $permohonan->save();
 
-            // 6. Kirim notifikasi
             Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
             return redirect()->route('petugas.permohonan-sk-domisili.show', $id)->with('success', 'Surat Keterangan Domisili berhasil dibuat.');
@@ -105,14 +101,18 @@ class PermohonanSKDomisiliController extends Controller
 
     public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanSKDomisili::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        $permohonan->status = 'membutuhkan_revisi';
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
-
+        
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
-        return redirect()->route('petugas.permohonan-sk-domisili.show', $id)->with('error', 'Permohonan telah ditolak.');
+        
+        return redirect()->route('petugas.permohonan-sk-domisili.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function downloadFinal($id)

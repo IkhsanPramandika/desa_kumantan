@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
@@ -25,7 +26,11 @@ class PermohonanKKPerubahanDataController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        $data = $query->paginate(10)->withQueryString();
+        
+        // Menambahkan fitur jumlah data per halaman
+        $perPage = $request->input('per_page', 10);
+        $data = $query->paginate($perPage)->withQueryString();
+
         return view('petugas.pengajuan.kk_perubahan.index', compact('data'));
     }
 
@@ -41,26 +46,30 @@ class PermohonanKKPerubahanDataController extends Controller
         $permohonan->status = 'diterima';
         $permohonan->save();
         
-        $title = "Permohonan Diverifikasi";
-        $message = "Permohonan Perubahan Data KK Anda (#{$permohonan->id}) telah kami verifikasi.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // [STANDARISASI] Menggunakan kelas notifikasi yang benar.
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
         return redirect()->route('petugas.permohonan-kk-perubahan.show', $id)->with('success', 'Permohonan berhasil diverifikasi.');
     }
 
-    public function tolak(Request $request, $id)
+     public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanKKPerubahanData::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        // Mengubah status menjadi 'membutuhkan_revisi'
+        $permohonan->status = 'membutuhkan_revisi';
+        
+        // Menyimpan catatan penolakan dari petugas
         $permohonan->catatan_penolakan = $request->catatan_penolakan;
         $permohonan->save();
         
-        $title = "Permohonan Ditolak";
-        $message = "Maaf, permohonan Perubahan Data KK Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // Mengirim notifikasi ke pengguna bahwa permohonan perlu direvisi
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
-        return redirect()->route('petugas.permohonan-kk-perubahan.show', $id)->with('error', 'Permohonan telah ditolak.');
+        return redirect()->route('petugas.permohonan-kk-perubahan.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function selesaikan(Request $request, $id)
@@ -71,30 +80,26 @@ class PermohonanKKPerubahanDataController extends Controller
        if ($request->hasFile('file_hasil_akhir')) {
              if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
                  Storage::disk('public')->delete($permohonan->file_hasil_akhir);
-                 }
- 
-
-             $file = $request->file('file_hasil_akhir');
-            $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap); // Mengubah nama menjadi format URL-friendly
-             $idPermohonan = $permohonan->id;
-             $ekstensi = $file->getClientOriginalExtension(); // Mengambil ekstensi asli (e.g., "pdf")
-
-             $namaFileKustom = "Kartu Keluarga _{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
- 
-
-            $path = $file->storeAs('permohonan_kk_perubahan/hasil_akhir', $namaFileKustom, 'public');
- 
-
-             $permohonan->file_hasil_akhir = $path;
              }
+ 
+             $file = $request->file('file_hasil_akhir');
+             $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap);
+             $idPermohonan = $permohonan->id;
+             $ekstensi = $file->getClientOriginalExtension();
+
+             $namaFileKustom = "Kartu Keluarga_{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
+ 
+             $path = $file->storeAs('permohonan_kk_perubahan/hasil_akhir', $namaFileKustom, 'public');
+ 
+             $permohonan->file_hasil_akhir = $path;
+        }
 
         $permohonan->status = 'selesai';
         $permohonan->tanggal_selesai_proses = Carbon::now();
         $permohonan->save();
 
-        $title = "Permohonan Selesai";
-        $message = "Selamat! Permohonan Perubahan Data KK Anda (#{$permohonan->id}) telah selesai diproses.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // [STANDARISASI] Menggunakan kelas notifikasi yang benar.
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
         return redirect()->route('petugas.permohonan-kk-perubahan.show', $id)->with('success', 'Proses permohonan berhasil diselesaikan.');
     }

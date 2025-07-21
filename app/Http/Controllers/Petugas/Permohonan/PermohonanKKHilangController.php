@@ -25,7 +25,11 @@ class PermohonanKKHilangController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        $data = $query->paginate(10)->withQueryString();
+    
+        $perPage = $request->input('per_page', 10); 
+
+        // Gunakan nilai tersebut di dalam paginate()
+        $data = $query->paginate($perPage)->withQueryString(); 
         return view('petugas.pengajuan.kk_hilang.index', compact('data'));
     }
 
@@ -48,19 +52,24 @@ class PermohonanKKHilangController extends Controller
         return redirect()->route('petugas.permohonan-kk-hilang.show', $id)->with('success', 'Permohonan berhasil diverifikasi.');
     }
 
-    public function tolak(Request $request, $id)
+     public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanKKHilang::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        // Mengubah status menjadi 'membutuhkan_revisi'
+        $permohonan->status = 'membutuhkan_revisi';
+        
+        // Menyimpan catatan penolakan dari petugas
         $permohonan->catatan_penolakan = $request->catatan_penolakan;
         $permohonan->save();
         
-        $title = "Permohonan Ditolak";
-        $message = "Maaf, permohonan KK Hilang Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
+        // Mengirim notifikasi ke pengguna bahwa permohonan perlu direvisi
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
-        return redirect()->route('petugas.permohonan-kk-hilang.show', $id)->with('error', 'Permohonan telah ditolak.');
+        return redirect()->route('petugas.permohonan-kk-hilang.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function selesaikan(Request $request, $id)

@@ -1,4 +1,6 @@
 <?php
+// Lokasi: app/Http/Controllers/Petugas/Permohonan/PermohonanLainnyaController.php
+
 namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
@@ -24,37 +26,51 @@ class PermohonanLainnyaController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        $data = $query->paginate(10)->withQueryString();
-        // --- PERBAIKAN FINAL DI SINI ---
+        
+        // [FITUR BARU] Menambahkan fitur jumlah data per halaman
+        $perPage = $request->input('per_page', 10);
+        $data = $query->paginate($perPage)->withQueryString();
+
         return view('petugas.pengajuan.permohonan_lainnya.index', compact('data'));
     }
 
     public function show($id)
     {
         $permohonan = PermohonanLainnya::with('masyarakat')->findOrFail($id);
-        // --- PERBAIKAN FINAL DI SINI ---
         return view('petugas.pengajuan.permohonan_lainnya.show', compact('permohonan'));
     }
 
+    /**
+     * [PERBAIKAN] Fungsi tolak diubah untuk alur revisi.
+     */
     public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanLainnya::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        // Mengubah status menjadi 'membutuhkan_revisi'
+        $permohonan->status = 'membutuhkan_revisi';
+        
+        // Menyimpan catatan penolakan dari petugas
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
 
+        // Mengirim notifikasi ke pengguna bahwa permohonan perlu direvisi
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
-        return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('error', 'Permohonan telah ditolak.');
+        
+        return redirect()->route('petugas.permohonan-lainnya.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
+
 
     public function createSurat($id)
     {
         $permohonan = PermohonanLainnya::findOrFail($id);
-        if (!in_array($permohonan->status, ['pending', 'diterima'])) {
-             return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('error', 'Surat tidak dapat dibuat untuk permohonan ini.');
+        // [PERBAIKAN] Izinkan membuat surat jika statusnya pending atau sudah direvisi
+        if (!in_array($permohonan->status, ['pending', 'membutuhkan_revisi'])) {
+             return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('error', 'Surat tidak dapat dibuat untuk permohonan dengan status ini.');
         }
-        // --- PERBAIKAN FINAL DI SINI ---
         return view('petugas.pengajuan.permohonan_lainnya.create_surat', compact('permohonan'));
     }
 

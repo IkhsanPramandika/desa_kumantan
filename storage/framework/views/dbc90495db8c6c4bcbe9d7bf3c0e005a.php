@@ -5,11 +5,20 @@
 <?php $__env->startSection('content'); ?>
 <h1 class="h3 mb-4 text-gray-800">Daftar Permohonan Surat Keterangan Tidak Mampu (SKTM)</h1>
 
+
 <?php if(session('success')): ?>
-    <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo e(session('success')); ?>
+
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
 <?php endif; ?>
 <?php if(session('error')): ?>
-    <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo e(session('error')); ?>
+
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
 <?php endif; ?>
 
 <div class="card shadow mb-4">
@@ -18,59 +27,81 @@
     </div>
     <div class="card-body">
 
-        <div class="mb-4">
-            <form action="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.index')); ?>" method="GET" class="form-inline">
-                <div class="form-group mr-2">
-                    <input type="text" class="form-control" name="search" placeholder="Cari nama pemohon/terkait..." value="<?php echo e(request('search')); ?>">
+        <div class="card card-body mb-4 p-3 bg-light">
+            <form action="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.index')); ?>" method="GET">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="search" class="font-weight-bold">Cari Nama Pemohon/Terkait</label>
+                        <input type="text" class="form-control" id="search" name="search" placeholder="Masukkan kata kunci..." value="<?php echo e(request('search')); ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="font-weight-bold">Status Permohonan</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="">-- Semua Status --</option>
+                            <option value="pending" <?php if(request('status') == 'pending'): echo 'selected'; endif; ?>>Pending</option>
+                            <option value="membutuhkan_revisi" <?php if(request('status') == 'membutuhkan_revisi'): echo 'selected'; endif; ?>>Perlu Revisi</option>
+                            <option value="diterima" <?php if(request('status') == 'diterima'): echo 'selected'; endif; ?>>Diterima</option>
+                            <option value="selesai" <?php if(request('status') == 'selesai'): echo 'selected'; endif; ?>>Selesai</option>
+                            <option value="ditolak" <?php if(request('status') == 'ditolak'): echo 'selected'; endif; ?>>Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="per_page" class="font-weight-bold">Tampilkan</label>
+                        <select class="form-control" id="per_page" name="per_page">
+                            <option value="10" <?php if(request('per_page', 10) == 10): echo 'selected'; endif; ?>>10</option>
+                            <option value="25" <?php if(request('per_page') == 25): echo 'selected'; endif; ?>>25</option>
+                            <option value="50" <?php if(request('per_page') == 50): echo 'selected'; endif; ?>>50</option>
+                            <option value="100" <?php if(request('per_page') == 100): echo 'selected'; endif; ?>>100</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex mt-3 mt-md-0">
+                        <button type="submit" class="btn btn-primary flex-grow-1"><i class="fas fa-search fa-sm"></i> Terapkan Filter</button>
+                        <a href="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.index')); ?>" class="btn btn-secondary ml-2" title="Reset Filter"><i class="fas fa-sync"></i></a>
+                    </div>
                 </div>
-                <div class="form-group mr-2">
-                    <select class="form-control" name="status">
-                        <option value="">-- Semua Status --</option>
-                        <option value="pending" <?php echo e(request('status') == 'pending' ? 'selected' : ''); ?>>Pending</option>
-                        <option value="selesai" <?php echo e(request('status') == 'selesai' ? 'selected' : ''); ?>>Selesai</option>
-                        <option value="ditolak" <?php echo e(request('status') == 'ditolak' ? 'selected' : ''); ?>>Ditolak</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary mr-2"><i class="fas fa-search"></i> Filter</button>
-                <a href="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.index')); ?>" class="btn btn-secondary"><i class="fas fa-sync"></i> Reset</a>
             </form>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered" width="100%" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th style="width: 5%;">ID</th>
                         <th>Pemohon</th>
                         <th>Pihak Terkait</th>
-                        <th>Tanggal Pengajuan</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
+                        <th style="width: 15%;">Tanggal Pengajuan</th>
+                        <th style="width: 15%;">Status</th>
+                        <th style="width: 15%;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php $__empty_1 = true; $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
                             <td><?php echo e($item->id); ?></td>
-                            <td><?php echo e($item->masyarakat->nama_lengkap ?? 'N/A'); ?></td>
-                            <td><?php echo e($item->nama_terkait ?? '-'); ?></td>
-                            <td><?php echo e($item->created_at->format('d/m/Y H:i')); ?></td>
                             <td>
-                                <?php if($item->status == 'pending'): ?> <span class="badge badge-warning">Pending</span>
-                                <?php elseif($item->status == 'selesai'): ?> <span class="badge badge-success">Selesai</span>
-                                <?php elseif($item->status == 'ditolak'): ?> <span class="badge badge-danger">Ditolak</span>
-                                <?php else: ?> <span class="badge badge-secondary"><?php echo e(ucfirst($item->status)); ?></span>
-                                <?php endif; ?>
+                                <div class="font-weight-bold"><?php echo e($item->masyarakat->nama_lengkap ?? 'N/A'); ?></div>
+                                <div class="small text-gray-600">NIK: <?php echo e($item->masyarakat->nik ?? 'N/A'); ?></div>
+                            </td>
+                            <td><?php echo e($item->nama_terkait ?? '-'); ?></td>
+                            <td><?php echo e(\Carbon\Carbon::parse($item->created_at)->isoFormat('D MMMM YYYY, HH:mm')); ?></td>
+                            <td>
+                                <?php echo $__env->make('layouts.partials.status_badge', ['status' => $item->status], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                             </td>
                             <td>
                                 <a href="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.show', $item->id)); ?>" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i> Lihat Detail
+                                    <i class="fas fa-eye fa-sm"></i> Proses
                                 </a>
                             </td>
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
-                            <td colspan="6" class="text-center">Tidak ada data yang cocok dengan filter Anda.</td>
+                            <td colspan="6" class="text-center">
+                                <div class="my-4">
+                                    <i class="fas fa-box-open fa-3x text-gray-400"></i>
+                                    <p class="mt-3 text-gray-600">Data tidak ditemukan.</p>
+                                    <p class="small">Coba ubah atau reset filter pencarian Anda.</p>
+                                </div>
+                            </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -81,25 +112,20 @@
             <?php echo e($data->links()); ?>
 
         </div>
-
     </div>
 </div>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startPush('scripts'); ?>
 <script>
-$(document).ready(function() {
-  if ($.fn.DataTable.isDataTable('#dataTable')) {
-    $('#dataTable').DataTable().destroy();
-  }
-  $('#dataTable').DataTable({
-    "searching": false,
-    "paging": true,
-    "info": true,
-    "order": [],
-    "columnDefs": [ { "targets": 'no-sort', "orderable": true } ]
-  });
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        const perPageSelect = document.getElementById('per_page');
+        if (perPageSelect) {
+            perPageSelect.addEventListener('change', function() {
+                this.closest('form').submit();
+            });
+        }
+    });
 </script>
 <?php $__env->stopPush(); ?>
 

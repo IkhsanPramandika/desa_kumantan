@@ -28,58 +28,77 @@ class KKPerubahanApiController extends Controller
         try {
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
 
+            // Cek apakah ini proses revisi atau pembuatan baru
+            if ($request->has('revisi_id') && !empty($request->revisi_id)) {
+                // ALUR REVISI
+                $permohonan = PermohonanKKPerubahanData::where('id', $request->revisi_id)
+                                                  ->where('masyarakat_id', $user->id)
+                                                  ->where('status', 'membutuhkan_revisi')
+                                                  ->firstOrFail();
+                
+                $dbData['status'] = 'pending';
+                $dbData['catatan_penolakan'] = null;
+
+            } else {
+                // ALUR PEMBUATAN BARU
+                $dbData['status'] = 'pending';
+            }
+
+            // Logika upload file
             $fileFields = ['file_kk', 'file_ktp', 'surat_pengantar_rt_rw', 'surat_keterangan_pendukung'];
             $basePath = 'permohonan_kk_perubahan_data/lampiran';
 
             foreach ($fileFields as $field) {
                 if ($request->hasFile($field)) {
+                    // Hapus file lama jika ini revisi dan ada file baru yang diupload
+                    if (isset($permohonan) && $permohonan->{$field}) {
+                        Storage::disk('public')->delete($permohonan->{$field});
+                    }
                     $file = $request->file($field);
                     $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
                     $filePath = $basePath . '/' . $fileName;
-
                     Storage::disk('public')->put($filePath, file_get_contents($file));
-
                     $dbData[$field] = $filePath;
                     $uploadedFilePaths[] = $filePath;
                 }
             }
 
-            if ($request->has('draft_id')) {
-                $permohonan = PermohonanKKPerubahanData::findOrFail($request->draft_id);
+            // Lakukan update jika revisi, atau create jika baru
+            if (isset($permohonan)) {
                 $permohonan->update($dbData);
+                $message = 'Revisi permohonan Perubahan Data KK berhasil dikirim.';
             } else {
                 $permohonan = PermohonanKKPerubahanData::create($dbData);
+                $message = 'Permohonan Perubahan Data KK berhasil diajukan.';
             }
 
-            try {
-                $semuaPetugas = User::where('role', 'petugas')->get();
-                if ($semuaPetugas->isNotEmpty()) {
-                    $title = $permohonan->getJudulNotifikasi();
-                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
-                    $url = $permohonan->getRouteTujuan();
-                    $permohonanId = $permohonan->getId();
-
-                    $notification = (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit();
-                    Notification::send($semuaPetugas, $notification);
+            // Notifikasi ke Petugas
+            $semuaPetugas = User::where('role', 'petugas')->get();
+            if ($semuaPetugas->isNotEmpty()) {
+                $title = $permohonan->getJudulNotifikasi();
+                $notifMessage = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                if(isset($permohonan) && $permohonan->wasChanged()) {
+                    $notifMessage = 'Ada revisi untuk ' . $title . ' dari ' . $user->nama_lengkap;
                 }
-            } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi untuk ' . get_class($permohonan) . ': ' . $e->getMessage());
+                $url = $permohonan->getRouteTujuan();
+                $permohonanId = $permohonan->getId();
+                Notification::send($semuaPetugas, (new PermohonanBaru($title, $notifMessage, $url, $permohonanId))->afterCommit());
             }
 
-            try {
-                Notification::send($user, new StatusPermohonanDiperbarui($permohonan));
-            } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi konfirmasi Perubahan KK ke masyarakat: ' . $e->getMessage());
+            // Notifikasi ke Masyarakat (hanya untuk pengajuan baru)
+            if(!isset($permohonan) || !$permohonan->wasChanged()){
+                 Notification::send($user, (new StatusPermohonanDiperbarui($permohonan))->afterCommit());
             }
 
             return (new PermohonanKKPerubahanDataResource($permohonan))
-                ->additional(['message' => 'Permohonan berhasil diajukan.'])
+                ->additional(['message' => $message])
                 ->response()->setStatusCode(201);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Permohonan untuk direvisi tidak ditemukan atau status tidak valid.'], 404);
         } catch (\Exception $e) {
-            Log::error('[API Perubahan KK - Store] Gagal menyimpan: ' . $e->getMessage());
+            Log::error('[API Perubahan KK - Store/Revisi] Gagal menyimpan: ' . $e->getMessage());
             foreach ($uploadedFilePaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);

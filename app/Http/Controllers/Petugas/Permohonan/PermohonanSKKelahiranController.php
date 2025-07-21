@@ -1,4 +1,5 @@
 <?php
+// Lokasi: app/Http/Controllers/Petugas/Permohonan/PermohonanSKKelahiranController.php
 
 namespace App\Http\Controllers\Petugas\Permohonan;
 
@@ -20,14 +21,23 @@ class PermohonanSKKelahiranController extends Controller
         $query = PermohonanSKKelahiran::with('masyarakat')->latest();
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('masyarakat', function($q) use ($search) {
-                $q->where('nama_lengkap', 'like', "%{$search}%")->orWhere('nik', 'like', "%{$search}%");
+            // Pencarian diperluas untuk nama anak dan orang tua
+            $query->where(function($q) use ($search) {
+                $q->where('nama_anak', 'like', "%{$search}%")
+                  ->orWhere('nama_ayah', 'like', "%{$search}%")
+                  ->orWhere('nama_ibu', 'like', "%{$search}%")
+                  ->orWhereHas('masyarakat', function($subq) use ($search) {
+                      $subq->where('nama_lengkap', 'like', "%{$search}%")->orWhere('nik', 'like', "%{$search}%");
+                  });
             });
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        $data = $query->paginate(10)->withQueryString();
+        
+        $perPage = $request->input('per_page', 10);
+        $data = $query->paginate($perPage)->withQueryString();
+
         return view('petugas.pengajuan.sk_kelahiran.index', compact('data'));
     }
 
@@ -48,26 +58,17 @@ class PermohonanSKKelahiranController extends Controller
         return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('success', 'Permohonan berhasil diverifikasi!');
     }
 
-    /**
-     * METHOD BARU: Menampilkan form edit surat.
-     */
     public function editSurat($id)
     {
         $permohonan = PermohonanSKKelahiran::findOrFail($id);
-        
         if ($permohonan->status !== 'diterima') {
             return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('error', 'Surat hanya bisa diproses untuk permohonan yang sudah diverifikasi.');
         }
-
         return view('petugas.pengajuan.sk_kelahiran.edit_surat', compact('permohonan'));
     }
 
-    /**
-     * METHOD LAMA (DIMODIFIKASI): Memproses data dari form edit dan membuat PDF.
-     */
     public function selesaikan(Request $request, $id)
     {
-        // 1. Validasi semua data yang masuk dari form edit
         $validatedData = $request->validate([
             'nama_anak' => 'required|string|max:255',
             'tempat_lahir_anak' => 'required|string|max:255',
@@ -85,27 +86,20 @@ class PermohonanSKKelahiranController extends Controller
         }
 
         try {
-            // 2. Update data permohonan di database
             $permohonan->update($validatedData);
-            
-            // 3. Panggil fungsi penomoran otomatis
             $permohonan->generateNomorSurat('472.11');
-
-            // 4. Set data lain yang diperlukan
             $permohonan->tanggal_selesai_proses = Carbon::now();
-
-            // 5. Generate PDF
             $pdf = Pdf::loadView('documents.sk_kelahiran', ['permohonan' => $permohonan]);
-            $fileName = 'Surat Keterangan Kelahiran Anak_' . Str::slug($permohonan->nama_pemohon) . '_' . $permohonan->id . '.pdf';
+            
+            // [PERBAIKAN] Menggunakan nama anak untuk nama file agar lebih relevan
+            $fileName = 'Surat Keterangan Kelahiran_' . Str::slug($permohonan->nama_anak) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_kelahiran/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
             
-            // 6. Simpan path file, ubah status, dan simpan semua perubahan
             $permohonan->file_hasil_akhir = $path;
             $permohonan->status = 'selesai';
             $permohonan->save();
 
-            // 7. Kirim notifikasi
             Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
             return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('success', 'Surat Keterangan Kelahiran berhasil dibuat.');
@@ -117,15 +111,18 @@ class PermohonanSKKelahiranController extends Controller
 
     public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanSKKelahiran::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        $permohonan->status = 'membutuhkan_revisi';
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
         
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
-        return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)->with('error', 'Permohonan telah ditolak.');
+        return redirect()->route('petugas.permohonan-sk-kelahiran.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function downloadFinal($id)

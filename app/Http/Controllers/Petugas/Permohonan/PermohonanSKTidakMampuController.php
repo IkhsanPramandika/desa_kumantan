@@ -1,10 +1,11 @@
 <?php
+// Lokasi: app/Http/Controllers/Petugas/Permohonan/PermohonanSKTidakMampuController.php
 
 namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonanSKTidakMampu;
-use App\Notifications\StatusPermohonanDiperbarui; // Menggunakan Notifikasi standar
+use App\Notifications\StatusPermohonanDiperbarui;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,19 +16,22 @@ use Illuminate\Support\Str;
 
 class PermohonanSKTidakMampuController extends Controller
 {
-    public function index(Request $request)
+   public function index(Request $request)
     {
         $query = PermohonanSKTidakMampu::with('masyarakat')->latest();
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('masyarakat', function($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")->orWhere('nik', 'like', "%{$search}%");
-            });
+            })->orWhere('nama_terkait', 'like', "%{$search}%");
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        $data = $query->paginate(10)->withQueryString();
+        
+        $perPage = $request->input('per_page', 10);
+        $data = $query->paginate($perPage)->withQueryString();
+
         return view('petugas.pengajuan.sk_tidak_mampu.index', compact('data'));
     }
 
@@ -50,26 +54,21 @@ class PermohonanSKTidakMampuController extends Controller
     public function editSurat($id)
     {
         $permohonan = PermohonanSKTidakMampu::findOrFail($id);
-        
         if ($permohonan->status !== 'diterima') {
             return redirect()->route('petugas.permohonan-sk-tidak-mampu.show', $id)->with('error', 'Surat hanya bisa diproses untuk permohonan yang sudah diverifikasi.');
         }
-
         return view('petugas.pengajuan.sk_tidak_mampu.edit_surat', compact('permohonan'));
     }
 
     public function selesaikan(Request $request, $id)
     {
-        // 1. Validasi data yang masuk dari form edit
+        // [PERBAIKAN] Validasi disesuaikan dengan field yang benar di form
         $validatedData = $request->validate([
-            // --- PERBAIKAN KUNCI ADA DI SINI ---
-            'nama_pemohon' => 'required|string|max:255',
-            'nik_pemohon' => 'required|string|max:255',
-            // ------------------------------------
             'nama_terkait' => 'nullable|string|max:255',
             'nik_terkait' => 'nullable|string|max:255',
             'tempat_lahir_terkait' => 'nullable|string|max:255',
             'tanggal_lahir_terkait' => 'nullable|date',
+            'jenis_kelamin_terkait' => 'nullable|string|max:255',
             'pekerjaan_atau_sekolah_terkait' => 'nullable|string|max:255',
             'alamat_terkait' => 'nullable|string',
             'keperluan_surat' => 'required|string',
@@ -81,29 +80,21 @@ class PermohonanSKTidakMampuController extends Controller
         }
 
         try {
-            // 2. Update data permohonan di database
             $permohonan->update($validatedData);
-            
-            // 3. Panggil fungsi penomoran otomatis
             $permohonan->generateNomorSurat('460');
-
-            // 4. Set data lain yang diperlukan
             $permohonan->tanggal_selesai_proses = Carbon::now();
-
-            // 5. Generate PDF
             $pdf = Pdf::loadView('documents.sk_tidak_mampu', ['permohonan' => $permohonan]);
-            $fileName = 'Surat Keterangan Tidak Mampu_' . Str::slug($permohonan->nama_pemohon) . '_' . $permohonan->id . '.pdf';
+            
+            // [PERBAIKAN] Nama file menggunakan nama pemohon dari relasi masyarakat
+            $fileName = 'Surat Keterangan Tidak Mampu_' . Str::slug($permohonan->masyarakat->nama_lengkap) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_tidak_mampu/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
             
-            // 6. Simpan path file, ubah status, dan simpan semua perubahan
             $permohonan->file_hasil_akhir = $path;
             $permohonan->status = 'selesai';
             $permohonan->save();
 
-            // 7. Kirim notifikasi
             Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
-
             return redirect()->route('petugas.permohonan-sk-tidak-mampu.show', $id)->with('success', 'Surat Keterangan Tidak Mampu berhasil dibuat.');
         } catch (\Exception $e) {
             Log::error("Gagal membuat PDF SKTM untuk ID {$id}: " . $e->getMessage());
@@ -111,16 +102,20 @@ class PermohonanSKTidakMampuController extends Controller
         }
     }
 
-    public function tolak(Request $request, $id)
+   public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+        
         $permohonan = PermohonanSKTidakMampu::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        $permohonan->status = 'membutuhkan_revisi';
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
 
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
-        return redirect()->route('petugas.permohonan-sk-tidak-mampu.show', $id)->with('error', 'Permohonan telah ditolak.');
+
+        return redirect()->route('petugas.permohonan-sk-tidak-mampu.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function downloadFinal($id)

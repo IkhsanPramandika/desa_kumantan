@@ -29,12 +29,12 @@ class PermohonanKKBaruController extends Controller
             $query->where('status', $request->status);
         }
 
-        // ==========================================================
-        // PERUBAHAN DI SINI: Ganti get() menjadi paginate()
-        // ==========================================================
-        $permohonan = $query->paginate(10)->withQueryString();
+        $perPage = $request->input('per_page', 10); 
+
+        // [PERBAIKAN] Mengubah nama variabel dari $data menjadi $permohonan
+        $permohonan = $query->paginate($perPage)->withQueryString();
         
-        // Mengirim variabel dengan nama 'permohonan' agar lebih deskriptif di view
+        // Sekarang variabel 'permohonan' sudah ada dan bisa dikirim
         return view('petugas.pengajuan.kk_baru.index', compact('permohonan'));
     }
 
@@ -50,27 +50,26 @@ class PermohonanKKBaruController extends Controller
         $permohonan->status = 'diterima';
         $permohonan->save();
         
-        $title = "Permohonan Diverifikasi";
-        $message = "Permohonan KK Baru Anda (#{$permohonan->id}) telah kami verifikasi.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // [STANDARISASI] Menggunakan kelas notifikasi yang benar (hanya butuh objek permohonan).
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
         return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('success', 'Permohonan berhasil diverifikasi.');
     }
 
-    public function tolak(Request $request, $id)
+   public function tolak(Request $request, $id)
     {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
+        $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
         
         $permohonan = PermohonanKKBaru::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
+
+        $permohonan->status = 'membutuhkan_revisi';
         $permohonan->catatan_penolakan = $request->catatan_penolakan;
         $permohonan->save();
         
-        $title = "Permohonan Ditolak";
-        $message = "Maaf, permohonan KK Baru Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
-        return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('error', 'Permohonan telah ditolak.');
+        return redirect()->route('petugas.permohonan-kk-baru.show', $id)
+                         ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
     }
 
     public function selesaikan(Request $request, $id)
@@ -80,32 +79,28 @@ class PermohonanKKBaruController extends Controller
         $permohonan = PermohonanKKBaru::with('masyarakat')->findOrFail($id);
 
         if ($request->hasFile('file_hasil_akhir')) {
-             if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
-                 Storage::disk('public')->delete($permohonan->file_hasil_akhir);
-                 }
- 
+            if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
+                Storage::disk('public')->delete($permohonan->file_hasil_akhir);
+            }
 
-             $file = $request->file('file_hasil_akhir');
-            $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap); // Mengubah nama menjadi format URL-friendly
-             $idPermohonan = $permohonan->id;
-             $ekstensi = $file->getClientOriginalExtension(); // Mengambil ekstensi asli (e.g., "pdf")
+            $file = $request->file('file_hasil_akhir');
+            $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap);
+            $idPermohonan = $permohonan->id;
+            $ekstensi = $file->getClientOriginalExtension();
 
-             $namaFileKustom = "Kartu Keluarga _{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
- 
+            $namaFileKustom = "Kartu Keluarga_{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
 
             $path = $file->storeAs('permohonan_kk_baru/hasil_akhir', $namaFileKustom, 'public');
- 
 
-             $permohonan->file_hasil_akhir = $path;
-             }
+            $permohonan->file_hasil_akhir = $path;
+        }
 
         $permohonan->status = 'selesai';
         $permohonan->tanggal_selesai_proses = Carbon::now();
         $permohonan->save();
 
-        $title = "Permohonan Selesai";
-        $message = "Selamat! Permohonan KK Baru Anda (#{$permohonan->id}) telah selesai diproses.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // [STANDARISASI] Menggunakan kelas notifikasi yang benar.
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
         return redirect()->route('petugas.permohonan-kk-baru.show', $id)->with('success', 'Proses permohonan berhasil diselesaikan.');
     }

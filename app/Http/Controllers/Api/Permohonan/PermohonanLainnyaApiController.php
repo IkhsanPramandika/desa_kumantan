@@ -50,18 +50,44 @@ class PermohonanLainnyaApiController extends Controller
     /**
      * Menyimpan permohonan baru yang sudah final.
      */
-    public function store(StorePermohonanLainnyaRequest $request): JsonResponse
+   public function store(StorePermohonanLainnyaRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
         $user = $request->user();
         $dbData = $validatedData;
         $dbData['masyarakat_id'] = $user->id;
-        $dbData['status'] = 'pending';
-
-        $uploadedPaths = []; // Definisikan di sini agar bisa diakses di blok catch
+        $uploadedPaths = [];
 
         try {
+            // Cek apakah ini proses revisi atau pembuatan baru
+            if ($request->has('revisi_id') && !empty($request->revisi_id)) {
+                // ALUR REVISI
+                $permohonan = PermohonanLainnya::where('id', $request->revisi_id)
+                                              ->where('masyarakat_id', $user->id)
+                                              ->where('status', 'membutuhkan_revisi')
+                                              ->firstOrFail();
+                
+                $dbData['status'] = 'pending';
+                $dbData['catatan_penolakan'] = null;
+
+            } else {
+                // ALUR PEMBUATAN BARU
+                $dbData['status'] = 'pending';
+            }
+
+            // Logika upload multiple files
             if ($request->hasFile('lampiran')) {
+                // Jika ini revisi dan ada file baru, hapus semua file lampiran lama
+                if (isset($permohonan) && !empty($permohonan->lampiran)) {
+                    $oldFiles = json_decode($permohonan->lampiran, true);
+                    if (is_array($oldFiles)) {
+                        foreach ($oldFiles as $oldFile) {
+                            Storage::disk('public')->delete($oldFile);
+                        }
+                    }
+                }
+
+                // Upload file-file yang baru
                 foreach ($request->file('lampiran') as $file) {
                     $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
                     $filePath = 'permohonan_lainnya/lampiran/' . $fileName;
@@ -72,42 +98,46 @@ class PermohonanLainnyaApiController extends Controller
                 $dbData['lampiran'] = json_encode($uploadedPaths);
             }
 
-            if ($request->has('draft_id')) {
-                $permohonan = PermohonanLainnya::findOrFail($request->draft_id);
+            // Lakukan update jika revisi, atau create jika baru
+            if (isset($permohonan)) {
                 $permohonan->update($dbData);
+                $message = 'Revisi permohonan berhasil dikirim.';
             } else {
                 $permohonan = PermohonanLainnya::create($dbData);
+                $message = 'Permohonan Anda berhasil diajukan.';
             }
 
             // Notifikasi ke Petugas
             $semuaPetugas = User::where('role', 'petugas')->get();
             if ($semuaPetugas->isNotEmpty()) {
-                Notification::send($semuaPetugas, new PermohonanBaru(
-                    $permohonan->getJudulNotifikasi(),
-                    'Ada permohonan baru dari ' . $user->nama_lengkap,
-                    $permohonan->getRouteTujuan(),
-                    $permohonan->getId()
-                ));
+                $title = $permohonan->getJudulNotifikasi();
+                $notifMessage = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
+                if(isset($permohonan) && $permohonan->wasChanged()) {
+                    $notifMessage = 'Ada revisi untuk ' . $title . ' dari ' . $user->nama_lengkap;
+                }
+                $url = $permohonan->getRouteTujuan();
+                $permohonanId = $permohonan->getId();
+                Notification::send($semuaPetugas, (new PermohonanBaru($title, $notifMessage, $url, $permohonanId))->afterCommit());
             }
             
-            // Notifikasi konfirmasi ke Masyarakat
-            Notification::send($user, (new StatusPermohonanDiperbarui($permohonan))->afterCommit());
+            // Notifikasi ke Masyarakat (hanya untuk pengajuan baru)
+            if(!isset($permohonan) || !$permohonan->wasChanged()){
+                 Notification::send($user, (new StatusPermohonanDiperbarui($permohonan))->afterCommit());
+            }
 
             return (new PermohonanLainnyaResource($permohonan))
-                ->additional(['message' => 'Permohonan Anda berhasil diajukan.'])
+                ->additional(['message' => $message])
                 ->response()->setStatusCode(201);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Permohonan untuk direvisi tidak ditemukan atau status tidak valid.'], 404);
         } catch (\Exception $e) {
-            Log::error('[API Permohonan Lainnya - Store] Gagal menyimpan: ' . $e->getMessage());
-            
-            // --- PERBAIKAN DI SINI ---
-            // Hapus semua file yang sudah terupload jika terjadi error
+            Log::error('[API Permohonan Lainnya - Store/Revisi] Gagal menyimpan: ' . $e->getMessage());
             foreach ($uploadedPaths as $path) {
                 if (Storage::disk('public')->exists($path)) {
                     Storage::disk('public')->delete($path);
                 }
             }
-            
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }
