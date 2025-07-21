@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Models\Masyarakat;
 use App\Interfaces\PermohonanInterface;
-use App\Traits\NomorSuratGenerator;
+use App\Traits\HasNomorSurat;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PermohonanKKBaru extends Model implements PermohonanInterface
 {
-    use HasFactory,NomorSuratGenerator;
+    use HasFactory,HasNomorSurat;
 
     
     protected $table = 'permohonan_kk_baru';

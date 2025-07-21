@@ -52,6 +52,7 @@
                 <a class="collapse-item" href="<?php echo e(route('petugas.permohonan-sk-usaha.index')); ?>">Surat Keterangan Usaha</a>
                 <a class="collapse-item" href="<?php echo e(route('petugas.permohonan-sk-domisili.index')); ?>">Surat Keterangan Domisili</a>
                 <a class="collapse-item" href="<?php echo e(route('petugas.permohonan-sk-tidak-mampu.index')); ?>">Surat Keterangan Tidak Mampu</a>
+                 <a class="collapse-item" href="<?php echo e(route('petugas.permohonan-lainnya.index')); ?>">Surat Keterangan Lainnya</a>
             </div>
         </div>
     </li>

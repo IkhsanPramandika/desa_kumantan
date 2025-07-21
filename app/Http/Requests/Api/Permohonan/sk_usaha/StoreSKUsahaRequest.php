@@ -28,6 +28,7 @@ class StoreSKUsahaRequest extends FormRequest
             'alamat_pemohon' => 'nullable|string',
             'nama_usaha' => 'nullable|string|max:255',
             'alamat_usaha' => 'nullable|string',
+            'keperluan_surat' => 'required|string|max:1000',
             'file_kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'file_ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'catatan_pemohon' => 'nullable|string',

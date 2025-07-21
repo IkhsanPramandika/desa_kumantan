@@ -105,8 +105,6 @@ class SKPerkawinanApiController extends Controller
             'tempat_lahir_wanita' => 'nullable|string|max:255',
             'tanggal_lahir_wanita' => 'nullable|date',
             'alamat_wanita' => 'nullable|string',
-            'tanggal_akad' => 'nullable|date',
-            'tempat_akad' => 'nullable|string|max:255',
             'catatan_pemohon' => 'nullable|string',
         ]);
 
@@ -141,8 +139,6 @@ class SKPerkawinanApiController extends Controller
             'tempat_lahir_wanita' => 'nullable|string|max:255',
             'tanggal_lahir_wanita' => 'nullable|date',
             'alamat_wanita' => 'nullable|string',
-            'tanggal_akad' => 'nullable|date',
-            'tempat_akad' => 'nullable|string|max:255',
             'catatan_pemohon' => 'nullable|string',
         ]);
 

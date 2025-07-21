@@ -2,21 +2,22 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Auth\MasyarakatAuthController;
-use App\Http\Controllers\Api\Auth\MasyarakatForgotPasswordController;
-use App\Http\Controllers\Api\Auth\MasyarakatResetPasswordController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\Pengumuman\PengumumanApiController;
-use App\Http\Controllers\Api\Permohonan\RiwayatPermohonanController;
+use App\Http\Controllers\Api\Auth\MasyarakatAuthController;
 use App\Http\Controllers\Api\Permohonan\KKBaruApiController;
+use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
 use App\Http\Controllers\Api\Permohonan\KKHilangApiController;
+use App\Http\Controllers\Api\Pengumuman\PengumumanApiController;
+use App\Http\Controllers\Api\Permohonan\SKDomisiliApiController;
 use App\Http\Controllers\Api\Permohonan\KKPerubahanApiController;
 use App\Http\Controllers\Api\Permohonan\SKAhliWarisApiController;
-use App\Http\Controllers\Api\Permohonan\SKDomisiliApiController;
 use App\Http\Controllers\Api\Permohonan\SKKelahiranApiController;
 use App\Http\Controllers\Api\Permohonan\SKPerkawinanApiController;
 use App\Http\Controllers\Api\Permohonan\SKTidakMampuApiController;
-use App\Http\Controllers\Api\Permohonan\SKUsahaApiController;
+use App\Http\Controllers\Api\Auth\MasyarakatResetPasswordController;
+use App\Http\Controllers\Api\Permohonan\RiwayatPermohonanController;
+use App\Http\Controllers\Api\Auth\MasyarakatForgotPasswordController;
+use App\Http\Controllers\Api\Permohonan\PermohonanLainnyaApiController;
 
 Route::get('/pengumuman', [PengumumanApiController::class, 'index'])->name('api.pengumuman.index');
 Route::get('/pengumuman/{slug}', [PengumumanApiController::class, 'show'])->name('api.pengumuman.show');
@@ -75,6 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('permohonan-sk-usaha', SKUsahaApiController::class)->except(['update', 'destroy']);
         $addDownloadRoute('permohonan-sk-usaha', SKUsahaApiController::class);
 
+        Route::apiResource('permohonan-lainnya', PermohonanLainnyaApiController::class)->except(['update', 'destroy', 'index', 'show']);
+         $addDownloadRoute('permohonan-lainnya', PermohonanLainnyaApiController::class);
+
         Route::prefix('draft')->name('draft.')->group(function() {
             $draftRoutes = [
                 'permohonan-kk-baru' => KKBaruApiController::class,
@@ -86,6 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 'permohonan-sk-perkawinan' => SKPerkawinanApiController::class,
                 'permohonan-sk-tidak-mampu' => SKTidakMampuApiController::class,
                 'permohonan-sk-usaha' => SKUsahaApiController::class,
+                'permohonan-lainnya' => PermohonanLainnyaApiController::class
             ];
 
             foreach ($draftRoutes as $uri => $controller) {

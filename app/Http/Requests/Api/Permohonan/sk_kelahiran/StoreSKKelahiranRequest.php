@@ -28,7 +28,6 @@ class StoreSKKelahiranRequest extends FormRequest
             'nik_ayah' => 'nullable|string|max:255',
             'nama_ibu' => 'required|string|max:255',
             'nik_ibu' => 'nullable|string|max:255',
-            'no_buku_nikah' => 'nullable|string|max:255',
             'file_kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'file_ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'surat_pengantar_rt_rw' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',

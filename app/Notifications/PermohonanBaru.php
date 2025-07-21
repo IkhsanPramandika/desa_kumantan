@@ -1,86 +1,52 @@
 <?php
-
-// ===================================================================
-// File: app/Notifications/PermohonanBaru.php (Final - Hybrid Payload)
-// ===================================================================
+// Lokasi: app/Notifications/PermohonanBaru.php
 
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\Fcm\FcmChannel;
-use Illuminate\Support\Facades\Log;
-use NotificationChannels\Fcm\FcmMessage;
-use Kreait\Firebase\Messaging\AndroidConfig;
+use Illuminate\Support\Str;
 
 class PermohonanBaru extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public string $title;
-    public string $message;
-    public string $url;
-    public int $permohonanId;
+    protected Model $permohonan;
 
-    public function __construct(string $title, string $message, string $url, int $permohonanId)
+    public function __construct(Model $permohonan)
     {
-        $this->title = $title;
-        $this->message = $message;
-        $this->url = $url;
-        $this->permohonanId = $permohonanId;
+        $this->permohonan = $permohonan;
     }
 
     public function via($notifiable): array
     {
-        $channels = ['database'];
-        if ($notifiable->fcm_token) {
-            $channels[] = FcmChannel::class;
-        }
-        return $channels;
-    }
-
-    public function toArray($notifiable): array
-    {
-        return [
-            'judul' => $this->title,
-            'pesan' => $this->message,
-            'permohonan_id' => $this->permohonanId,
-            'url' => $this->url,
-        ];
+        // Untuk contoh ini, kita fokus pada 'database' untuk web
+        return ['database'];
     }
 
     /**
-     * [PERBAIKAN FINAL] Menggunakan payload hybrid (notification + data)
-     * untuk kompatibilitas maksimal di semua perangkat.
+     * [PERBAIKAN] Mengembalikan data notifikasi yang lebih kaya dan terstruktur.
      */
-    public function toFcm($notifiable): FcmMessage
+    public function toArray($notifiable): array
     {
-        Log::info("[HYBRID FCM - PermohonanBaru] Mengirim notifikasi ke user ID: " . $notifiable->id);
+        // Asumsi model permohonan Anda memiliki method-method ini
+        // Jika tidak, sesuaikan dengan cara Anda mendapatkan data ini.
+        $jenisSurat = method_exists($this->permohonan, 'getJenisSurat') ? $this->permohonan->getJenisSurat() : 'Permohonan Baru';
+        $namaPemohon = $this->permohonan->masyarakat->nama_lengkap ?? 'Masyarakat';
+        $icon = method_exists($this->permohonan, 'getIcon') ? $this->permohonan->getIcon() : 'fas fa-file-alt';
+        
+        // URL tujuan ketika notifikasi diklik
+        // Ganti 'nama.route.show' dengan nama route detail permohonan yang sesuai
+        $url = route('petugas.permohonan-kk-baru.show', $this->permohonan->id); 
 
-        $androidConfig = AndroidConfig::fromArray([
-            'priority' => 'high',
-            'notification' => [
-                'channel_id' => 'high_importance_channel',
-                'sound' => 'default',
-            ],
-        ]);
-
-        return FcmMessage::create()
-            // Bagian 1: setNotification() untuk ditampilkan langsung oleh OS
-            ->setNotification([
-                'title' => $this->title,
-                'body' => $this->message,
-            ])
-            // Bagian 2: setData() untuk membawa data tambahan
-            ->setData([
-                'title' => $this->title,
-                'body' => $this->message,
-                'permohonan_id' => (string) $this->permohonanId,
-                'jenis_notifikasi' => 'permohonan_baru_untuk_petugas',
-                'url_webview' => $this->url,
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-            ])
-            ->setAndroid($androidConfig);
+        return [
+            'judul'     => $jenisSurat,
+            'sub_judul' => 'dari ' . Str::words($namaPemohon, 2, '...'),
+            'pesan'     => "Ada {$jenisSurat} baru dari {$namaPemohon}",
+            'ikon'      => $icon,
+            'url'       => $url,
+        ];
     }
 }

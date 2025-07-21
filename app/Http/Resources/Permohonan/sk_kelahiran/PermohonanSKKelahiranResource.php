@@ -20,6 +20,7 @@ class PermohonanSKKelahiranResource extends JsonResource
             'id' => $this->id,
             'status' => $this->status,
             'catatan' => $this->catatan,
+              'catatan_pemohon' => $this->catatan_pemohon,
             'catatan_penolakan' => $this->catatan_penolakan,
             'tanggal_pengajuan' => $this->created_at->isoFormat('D MMMM YYYY, HH:mm:ss'),
             'tanggal_selesai_proses' => $this->tanggal_selesai_proses ? Carbon::parse($this->tanggal_selesai_proses)->isoFormat('D MMMM YYYY, HH:mm:ss') : null,
@@ -37,7 +38,6 @@ class PermohonanSKKelahiranResource extends JsonResource
                 'nik_ayah' => $this->nik_ayah,
                 'nama_ibu' => $this->nama_ibu,
                 'nik_ibu' => $this->nik_ibu,
-                'no_buku_nikah' => $this->no_buku_nikah,
             ],
 
             'lampiran' => [

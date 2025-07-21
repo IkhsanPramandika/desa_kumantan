@@ -9,69 +9,68 @@
 @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
 <div class="row">
-    {{-- KOLOM KIRI: DATA PEMOHON & USAHA --}}
+    {{-- KOLOM KIRI: DETAIL DATA PERMOHONAN --}}
     <div class="col-lg-7">
         <div class="card shadow mb-4">
-            <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Data yang Diajukan Masyarakat</h6></div>
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Data yang Diajukan Masyarakat</h6>
+            </div>
             <div class="card-body">
-                <h5 class="font-weight-bold">Data Pemohon / Lembaga</h5>
                 <dl class="row">
-                    <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_pemohon_atau_lembaga ?? '-' }}</dd>
-                    <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_pemohon ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pemohon ?? '-' }}, {{ $permohonan->tanggal_lahir_pemohon ? $permohonan->tanggal_lahir_pemohon->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Pekerjaan</dt><dd class="col-sm-8">{{ $permohonan->pekerjaan_pemohon ?? '-' }}</dd>
+                    <dt class="col-sm-5">Nama Pemohon/Lembaga</dt>
+                    <dd class="col-sm-7">{{ $permohonan->nama_pemohon_atau_lembaga ?? '-' }}</dd>
+                    
+                    <dt class="col-sm-5">NIK Pemohon</dt>
+                    <dd class="col-sm-7">{{ $permohonan->nik_pemohon ?? '-' }}</dd>
+                    
+                    <dt class="col-sm-5">Alamat Domisili</dt>
+                    <dd class="col-sm-7">{{ $permohonan->alamat_lengkap_domisili ?? '-' }}</dd>
+
+                    <dt class="col-sm-5">RT/RW</dt>
+                    <dd class="col-sm-7">{{ $permohonan->rt_domisili ?? '-' }} / {{ $permohonan->rw_domisili ?? '-' }}</dd>
+
+                    <dt class="col-sm-5">Keperluan</dt>
+                    <dd class="col-sm-7">{{ $permohonan->keperluan_domisili ?? '-' }}</dd>
                 </dl>
-                <hr>
-                <h5 class="font-weight-bold mt-4">Data Domisili</h5>
-                <dl class="row">
-                    <dt class="col-sm-4">Alamat Lengkap</dt><dd class="col-sm-8">{{ $permohonan->alamat_lengkap_domisili ?? '-' }}</dd>
-                    <dt class="col-sm-4">RT / RW / Dusun</dt><dd class="col-sm-8">{{ $permohonan->rt_domisili ?? '-' }} / {{ $permohonan->rw_domisili ?? '-' }} / {{ $permohonan->dusun_domisili ?? '-' }}</dd>
-                    <dt class="col-sm-4">Keperluan</dt><dd class="col-sm-8">{{ $permohonan->keperluan_domisili ?? '-' }}</dd>
-                </dl>
-                
-                {{-- Penambahan Bagian Catatan Pemohon --}}
-                <hr>
-                <h5 class="font-weight-bold mt-4">Catatan dari Pemohon</h5>
-                <p><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></p>
             </div>
         </div>
     </div>
 
     {{-- KOLOM KANAN: STATUS, AKSI, DAN LAMPIRAN --}}
     <div class="col-lg-5">
+        {{-- CARD UNTUK STATUS & AKSI --}}
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Status & Aksi</h6>
                 @if ($permohonan->status == 'pending') <span class="badge badge-warning">Pending</span>
-                @elseif (in_array($permohonan->status, ['diterima', 'diproses'])) <span class="badge badge-info">{{ ucfirst($permohonan->status) }}</span>
+                @elseif ($permohonan->status == 'diterima') <span class="badge badge-info">Diterima</span>
                 @elseif ($permohonan->status == 'selesai') <span class="badge badge-success">Selesai</span>
                 @elseif ($permohonan->status == 'ditolak') <span class="badge badge-danger">Ditolak</span>
                 @endif
             </div>
             <div class="card-body">
                 @if($permohonan->status == 'pending')
-                    <p>Periksa lampiran. Jika data valid, klik tombol di bawah untuk memverifikasi dan membuat surat.</p>
+                    <p>Periksa lampiran. Jika valid, klik "Verifikasi" untuk melanjutkan.</p>
                     <form action="{{ route('petugas.permohonan-sk-domisili.verifikasi', $permohonan->id) }}" method="POST" class="mb-2">
                         @csrf
-                        <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Anda yakin data valid dan ingin langsung membuat surat?')"><i class="fas fa-check"></i> Verifikasi & Buat Surat</button>
+                        <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Anda yakin data valid?')"><i class="fas fa-check"></i> Verifikasi Permohonan</button>
                     </form>
                     <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#tolakModal"><i class="fas fa-times"></i> Tolak</button>
                 
-                @elseif($permohonan->status == 'selesai')
-                    <p>Surat telah dibuat. Anda bisa mengunduhnya atau membagikan link publik.</p>
-                    <a href="{{ route('petugas.permohonan-sk-domisili.download-final', $permohonan->id) }}" class="btn btn-success btn-block mb-2"><i class="fas fa-download"></i> Unduh Surat (Petugas)</a>
-                    <div class="form-group">
-                        <label>Link Download Publik:</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" value="{{ route('public.download.sk-domisili', $permohonan->id) }}" readonly id="publicLink">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" onclick="copyLink()">Salin</button>
-                            </div>
-                        </div>
-                    </div>
+                @elseif($permohonan->status == 'diterima')
+                    <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk memproses dan mengedit data sebelum membuat surat final.</p>
+                    <a href="{{ route('petugas.permohonan-sk-domisili.edit-surat', $permohonan->id) }}" class="btn btn-primary btn-block mb-2">
+                        <i class="fas fa-edit"></i> Proses & Edit Surat
+                    </a>
                 
+                @elseif($permohonan->status == 'selesai')
+                    <p>Surat telah dibuat pada {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->format('d F Y, H:i') : '' }}.</p>
+                    <a href="{{ route('petugas.permohonan-sk-domisili.download-final', $permohonan->id) }}" class="btn btn-success btn-block">
+                        <i class="fas fa-download"></i> Unduh Surat
+                    </a>
+
                 @elseif($permohonan->status == 'ditolak')
-                    <p>Permohonan ditolak dengan alasan:</p>
+                    <p>Permohonan ini telah ditolak dengan alasan:</p>
                     <blockquote class="blockquote-footer"><em>"{{ $permohonan->catatan_penolakan }}"</em></blockquote>
                 @endif
                 
@@ -79,6 +78,7 @@
             </div>
         </div>
 
+        {{-- CARD UNTUK DOKUMEN LAMPIRAN --}}
         <div class="card shadow mb-4">
             <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Dokumen Lampiran</h6></div>
             <div class="card-body">
@@ -112,28 +112,22 @@
         <div class="modal-content">
             <form action="{{ route('petugas.permohonan-sk-domisili.tolak', $permohonan->id) }}" method="POST">
                 @csrf
-                <div class="modal-header"><h5 class="modal-title">Tolak Permohonan</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Tolak Permohonan</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="catatan_penolakan">Alasan Penolakan:</label>
                         <textarea class="form-control" name="catatan_penolakan" rows="4" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button><button type="submit" class="btn btn-danger">Ya, Tolak</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Ya, Tolak</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-function copyLink() {
-  var copyText = document.getElementById("publicLink");
-  copyText.select();
-  copyText.setSelectionRange(0, 99999); /* For mobile devices */
-  document.execCommand("copy");
-  alert("Link berhasil disalin!");
-}
-</script>
-@endpush

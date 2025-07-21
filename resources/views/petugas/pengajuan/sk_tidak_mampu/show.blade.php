@@ -9,35 +9,44 @@
 @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
 <div class="row">
-    {{-- KOLOM KIRI: DATA PEMOHON & TERKAIT --}}
+    {{-- KOLOM KIRI: DETAIL DATA PERMOHONAN --}}
     <div class="col-lg-7">
         <div class="card shadow mb-4">
-            <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Data yang Diajukan Masyarakat</h6></div>
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Data yang Diajukan Masyarakat</h6>
+            </div>
             <div class="card-body">
                 <h5 class="font-weight-bold">Data Pemohon</h5>
                 <dl class="row">
-                    <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_pemohon ?? '-' }}</dd>
-                    <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_pemohon ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pemohon ?? '-' }}, {{ $permohonan->tanggal_lahir_pemohon ? $permohonan->tanggal_lahir_pemohon->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Pekerjaan</dt><dd class="col-sm-8">{{ $permohonan->pekerjaan_pemohon ?? '-' }}</dd>
-                    <dt class="col-sm-4">Alamat</dt><dd class="col-sm-8">{{ $permohonan->alamat_pemohon ?? '-' }}</dd>
+                    <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->nama_lengkap ?? '-' }}</dd>
+                    <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->nik ?? '-' }}</dd>
+                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->tempat_lahir ?? '-' }}, {{ $permohonan->masyarakat->tanggal_lahir ? \Carbon\Carbon::parse($permohonan->masyarakat->tanggal_lahir)->isoFormat('D MMMM YYYY') : '-' }}</dd>
+                    <dt class="col-sm-4">Pekerjaan</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->pekerjaan ?? '-' }}</dd>
+                    <dt class="col-sm-4">Alamat</dt><dd class="col-sm-8">{{ $permohonan->masyarakat->alamat_lengkap ?? '-' }}</dd>
                 </dl>
-                
+
+                {{-- Menampilkan data anak/orang tua terkait jika ada --}}
                 @if($permohonan->nama_terkait)
                 <hr>
                 <h5 class="font-weight-bold mt-4">Data Anak/Orang Tua Terkait</h5>
                 <dl class="row">
                     <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_terkait ?? '-' }}</dd>
+                    <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_terkait ?? '-' }}</dd>
+                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_terkait ?? '-' }}, {{ $permohonan->tanggal_lahir_terkait ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_terkait)->isoFormat('D MMMM YYYY') : '-' }}</dd>
+                    <dt class="col-sm-4">Jenis Kelamin</dt><dd class="col-sm-8">{{ $permohonan->jenis_kelamin_terkait ?? '-' }}</dd>
+                    <dt class="col-sm-4">Agama</dt><dd class="col-sm-8">{{ $permohonan->agama_terkait ?? '-' }}</dd>
                     <dt class="col-sm-4">Pekerjaan/Sekolah</dt><dd class="col-sm-8">{{ $permohonan->pekerjaan_atau_sekolah_terkait ?? '-' }}</dd>
                     <dt class="col-sm-4">Alamat</dt><dd class="col-sm-8">{{ $permohonan->alamat_terkait ?? '-' }}</dd>
                 </dl>
                 @endif
-                
+
                 <hr>
                 <h5 class="font-weight-bold mt-4">Keperluan & Catatan</h5>
-                <dl class="row">
-                    <dt class="col-sm-4">Keperluan Surat</dt><dd class="col-sm-8">{{ $permohonan->keperluan_surat ?? '-' }}</dd>
-                    <dt class="col-sm-4">Catatan Pemohon</dt><dd class="col-sm-8"><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></dd>
+                <dl>
+                    <dt>Keperluan Surat</dt>
+                    <dd>{{ $permohonan->keperluan_surat ?? '-' }}</dd>
+                    <dt class="mt-2">Catatan Pemohon</dt>
+                    <dd><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></dd>
                 </dl>
             </div>
         </div>
@@ -46,30 +55,38 @@
     {{-- KOLOM KANAN: STATUS, AKSI, DAN LAMPIRAN --}}
     <div class="col-lg-5">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Status & Aksi</h6>
                 @if ($permohonan->status == 'pending') <span class="badge badge-warning">Pending</span>
-                @elseif (in_array($permohonan->status, ['diterima', 'diproses'])) <span class="badge badge-info">{{ ucfirst($permohonan->status) }}</span>
+                @elseif ($permohonan->status == 'diterima') <span class="badge badge-info">Diterima</span>
                 @elseif ($permohonan->status == 'selesai') <span class="badge badge-success">Selesai</span>
                 @elseif ($permohonan->status == 'ditolak') <span class="badge badge-danger">Ditolak</span>
                 @endif
             </div>
             <div class="card-body">
                 @if($permohonan->status == 'pending')
-                    <p>Periksa lampiran. Jika data valid, klik tombol di bawah untuk memverifikasi dan membuat surat.</p>
+                    <p>Periksa lampiran. Jika valid, klik "Verifikasi" untuk melanjutkan.</p>
                     <form action="{{ route('petugas.permohonan-sk-tidak-mampu.verifikasi', $permohonan->id) }}" method="POST" class="mb-2">
                         @csrf
-                        <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Anda yakin data valid dan ingin langsung membuat surat?')"><i class="fas fa-check"></i> Verifikasi & Buat Surat</button>
+                        <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Anda yakin data valid?')"><i class="fas fa-check"></i> Verifikasi Permohonan</button>
                     </form>
                     <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#tolakModal"><i class="fas fa-times"></i> Tolak</button>
                 
+                @elseif($permohonan->status == 'diterima')
+                    <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk memproses dan mengedit data sebelum membuat surat final.</p>
+                    <a href="{{ route('petugas.permohonan-sk-tidak-mampu.edit-surat', $permohonan->id) }}" class="btn btn-primary btn-block mb-2">
+                        <i class="fas fa-edit"></i> Proses & Edit Surat
+                    </a>
+                
+                {{-- --- BLOK YANG HILANG DITAMBAHKAN DI SINI --- --}}
                 @elseif($permohonan->status == 'selesai')
                     <p>Surat telah dibuat pada {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->format('d F Y, H:i') : '' }}.</p>
-                    <a href="{{ route('petugas.permohonan-sk-tidak-mampu.download-final', $permohonan->id) }}" class="btn btn-success btn-block mb-2"><i class="fas fa-download"></i> Unduh Surat</a>
-                
-                
+                    <a href="{{ route('petugas.permohonan-sk-tidak-mampu.download-final', $permohonan->id) }}" class="btn btn-success btn-block">
+                        <i class="fas fa-download"></i> Unduh Surat
+                    </a>
+
                 @elseif($permohonan->status == 'ditolak')
-                    <p>Permohonan ditolak dengan alasan:</p>
+                    <p>Permohonan ini telah ditolak dengan alasan:</p>
                     <blockquote class="blockquote-footer"><em>"{{ $permohonan->catatan_penolakan }}"</em></blockquote>
                 @endif
                 
@@ -110,28 +127,22 @@
         <div class="modal-content">
             <form action="{{ route('petugas.permohonan-sk-tidak-mampu.tolak', $permohonan->id) }}" method="POST">
                 @csrf
-                <div class="modal-header"><h5 class="modal-title">Tolak Permohonan</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Tolak Permohonan</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="catatan_penolakan">Alasan Penolakan:</label>
                         <textarea class="form-control" name="catatan_penolakan" rows="4" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button><button type="submit" class="btn btn-danger">Ya, Tolak</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Ya, Tolak</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-function copyLink() {
-  var copyText = document.getElementById("publicLink");
-  copyText.select();
-  copyText.setSelectionRange(0, 99999); /* For mobile devices */
-  document.execCommand("copy");
-  alert("Link berhasil disalin!");
-}
-</script>
-@endpush
