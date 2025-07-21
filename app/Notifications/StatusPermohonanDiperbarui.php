@@ -1,5 +1,5 @@
 <?php
-
+// Lokasi: app/Notifications/StatusPermohonanDiperbarui.php
 
 namespace App\Notifications;
 
@@ -26,6 +26,9 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
         $this->setNotificationMessages();
     }
 
+    /**
+     * Menentukan judul dan pesan notifikasi berdasarkan status permohonan.
+     */
     protected function setNotificationMessages(): void
     {
         $jenisSurat = method_exists($this->permohonan, 'getJudulNotifikasi')
@@ -33,6 +36,12 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
                         : 'Permohonan Surat';
 
         switch ($this->permohonan->status) {
+            // [KODE BARU] Menangani status saat permohonan perlu direvisi.
+            case 'membutuhkan_revisi':
+                $this->judulNotifikasi = "Permohonan Perlu Direvisi";
+                $this->pesanNotifikasi = "{$jenisSurat} Anda perlu diperbaiki. Mohon periksa catatan dari petugas.";
+                break;
+            
             case 'diterima':
                 $this->judulNotifikasi = "Permohonan Anda Diterima";
                 $this->pesanNotifikasi = "Verifikasi berhasil! {$jenisSurat} Anda telah diterima.";
@@ -41,13 +50,16 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
                 $this->judulNotifikasi = "Permohonan Anda Telah Selesai";
                 $this->pesanNotifikasi = "Selamat! Dokumen untuk {$jenisSurat} Anda telah selesai diproses.";
                 break;
-            default:
+            default: // Ini akan menangani status 'pending' atau lainnya
                 $this->judulNotifikasi = "Permohonan Anda Telah Diajukan";
                 $this->pesanNotifikasi = "Terima kasih! {$jenisSurat} Anda telah berhasil kami terima.";
                 break;
         }
     }
 
+    /**
+     * Menentukan channel pengiriman notifikasi (database untuk web, fcm untuk mobile).
+     */
     public function via(object $notifiable): array
     {
         $channels = ['database'];
@@ -57,20 +69,34 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
         return $channels;
     }
 
+    /**
+     * Mengubah data notifikasi menjadi format array untuk disimpan di database.
+     */
     public function toArray(object $notifiable): array
     {
-        return [
+        $data = [
             'judul' => $this->judulNotifikasi,
             'pesan' => $this->pesanNotifikasi,
             'permohonan_id' => $this->permohonan->id,
             'status' => $this->permohonan->status,
             'jenis_permohonan' => $this->permohonan->getTable(),
+            // [PERBAIKAN] Menambahkan ikon agar bisa ditampilkan di UI notifikasi web
+            'ikon' => method_exists($this->permohonan, 'getIcon') ? $this->permohonan->getIcon() : 'fas fa-file-alt',
+            // [PERBAIKAN] Menambahkan URL tujuan agar notifikasi bisa diklik
+            'url' => method_exists($this->permohonan, 'getRouteTujuan') ? $this->permohonan->getRouteTujuan() : '#',
         ];
+
+        // [KODE BARU] Sertakan catatan penolakan jika statusnya adalah 'membutuhkan_revisi'.
+        // Ini penting agar pengguna di aplikasi mobile tahu apa yang harus diperbaiki.
+        if ($this->permohonan->status === 'membutuhkan_revisi') {
+            $data['catatan_penolakan'] = $this->permohonan->catatan_penolakan;
+        }
+
+        return $data;
     }
 
     /**
-     * [PERBAIKAN FINAL] Menggunakan payload hybrid (notification + data)
-     * untuk kompatibilitas maksimal di semua perangkat.
+     * Mengubah data notifikasi menjadi format untuk dikirim via Firebase Cloud Messaging (FCM).
      */
     public function toFcm(object $notifiable): FcmMessage
     {
@@ -84,21 +110,22 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
             ],
         ]);
 
+        // Mengambil data dari toArray() agar konsisten
+        $payloadData = $this->toArray($notifiable);
+        
+        // Memastikan semua value adalah string untuk kompatibilitas FCM
+        foreach ($payloadData as $key => $value) {
+            $payloadData[$key] = (string) $value;
+        }
+        $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
+
+
         return FcmMessage::create()
-            // Bagian 1: setNotification() untuk ditampilkan langsung oleh OS
             ->setNotification([
                 'title' => $this->judulNotifikasi,
                 'body' => $this->pesanNotifikasi,
             ])
-            // Bagian 2: setData() untuk membawa data tambahan
-            ->setData([
-                'title' => $this->judulNotifikasi,
-                'body' => $this->pesanNotifikasi,
-                'permohonan_id' => (string) $this->permohonan->id,
-                'status' => $this->permohonan->status,
-                'jenis_permohonan' => $this->permohonan->getTable(),
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-            ])
+            ->setData($payloadData)
             ->setAndroid($androidConfig);
     }
 }

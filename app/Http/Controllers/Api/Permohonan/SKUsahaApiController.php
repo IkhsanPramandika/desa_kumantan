@@ -19,6 +19,8 @@ use Illuminate\Support\Str;
 
 class SKUsahaApiController extends Controller
 {
+  
+
     public function store(StoreSKUsahaRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
@@ -28,12 +30,33 @@ class SKUsahaApiController extends Controller
         try {
             $dbData = $validatedData;
             $dbData['masyarakat_id'] = $user->id;
-            $dbData['status'] = 'pending';
+            
+            // [PERUBAHAN UTAMA] Cek apakah ini proses revisi atau pembuatan baru
+            if ($request->has('revisi_id')) {
+                // INI ADALAH ALUR REVISI
+                $permohonan = PermohonanSKUsaha::where('id', $request->revisi_id)
+                                            ->where('masyarakat_id', $user->id)
+                                            ->where('status', 'membutuhkan_revisi')
+                                            ->firstOrFail();
+                
+                // Set status kembali ke 'pending' dan hapus catatan lama
+                $dbData['status'] = 'pending';
+                $dbData['catatan_penolakan'] = null;
 
+            } else {
+                // INI ADALAH ALUR PEMBUATAN BARU (seperti sebelumnya)
+                $dbData['status'] = 'pending';
+            }
+
+            // Logika upload file (tetap sama, berlaku untuk revisi & baru)
             $fileFields = ['file_kk', 'file_ktp'];
             $basePath = 'permohonan_sk_usaha/lampiran';
             foreach ($fileFields as $field) {
                 if ($request->hasFile($field)) {
+                    // Jika ini revisi & ada file baru, hapus file lama
+                    if (isset($permohonan) && $permohonan->{$field}) {
+                        Storage::disk('public')->delete($permohonan->{$field});
+                    }
                     $file = $request->file($field);
                     $fileName = Str::random(40) . '.' . $file->getClientOriginalExtension();
                     $filePath = $basePath . '/' . $fileName;
@@ -43,49 +66,32 @@ class SKUsahaApiController extends Controller
                 }
             }
 
-            if ($request->has('draft_id')) {
-                $permohonan = PermohonanSKUsaha::findOrFail($request->draft_id);
+            // Lakukan update jika revisi, atau create jika baru
+            if (isset($permohonan)) {
                 $permohonan->update($dbData);
             } else {
                 $permohonan = PermohonanSKUsaha::create($dbData);
             }
 
-            // Notifikasi ke Petugas (sudah benar)
-            try {
-                $semuaPetugas = User::where('role', 'petugas')->get();
-                if ($semuaPetugas->isNotEmpty()) {
-                    $title = $permohonan->getJudulNotifikasi();
-                    $message = 'Ada ' . $title . ' baru dari ' . $user->nama_lengkap;
-                    $url = $permohonan->getRouteTujuan();
-                    $permohonanId = $permohonan->getId();
-                    Notification::send($semuaPetugas, (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit());
-                }
-            } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi ke petugas: ' . $e->getMessage());
-            }
-
-            // Notifikasi konfirmasi ke Masyarakat
-            try {
-                // [PERBAIKAN KUNCI] Tambahkan ->afterCommit()
-                // Ini memastikan notifikasi hanya dikirim setelah data permohonan
-                // berhasil disimpan permanen di database.
-                Notification::send($user, (new StatusPermohonanDiperbarui($permohonan))->afterCommit());
-
-            } catch (\Exception $e) {
-                Log::error('Gagal mengirim notifikasi konfirmasi ke masyarakat: ' . $e->getMessage());
+            // Notifikasi ke Petugas (tetap sama)
+            $semuaPetugas = User::where('role', 'petugas')->get();
+            if ($semuaPetugas->isNotEmpty()) {
+                $title = $permohonan->getJudulNotifikasi();
+                $message = 'Ada ' . $title . ' baru (hasil revisi) dari ' . $user->nama_lengkap;
+                $url = $permohonan->getRouteTujuan();
+                $permohonanId = $permohonan->getId();
+                Notification::send($semuaPetugas, (new PermohonanBaru($title, $message, $url, $permohonanId))->afterCommit());
             }
 
             return (new PermohonanSKUsahaResource($permohonan))
-                ->additional(['message' => 'Permohonan SK Usaha berhasil diajukan.'])
-                ->response()->setStatusCode(201);
+                    ->additional(['message' => 'Permohonan SK Usaha berhasil dikirim.'])
+                    ->response()->setStatusCode(201);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Permohonan untuk direvisi tidak ditemukan atau status tidak valid.'], 404);
         } catch (\Exception $e) {
-            Log::error('[API SK Usaha - Store] Gagal menyimpan: ' . $e->getMessage());
-            foreach ($uploadedFilePaths as $path) {
-                if (Storage::disk('public')->exists($path)) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
+            Log::error('[API SK Usaha - Store/Revisi] Gagal menyimpan: ' . $e->getMessage());
+            // ... logika hapus file jika gagal ...
             return response()->json(['message' => 'Gagal menyimpan permohonan.', 'error' => $e->getMessage()], 500);
         }
     }

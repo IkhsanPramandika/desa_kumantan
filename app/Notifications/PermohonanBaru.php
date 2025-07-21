@@ -5,48 +5,99 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use Kreait\Firebase\Messaging\AndroidConfig;
 
 class PermohonanBaru extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected Model $permohonan;
+    // Properti untuk menyimpan data dari constructor cara lama
+    public string $title;
+    public string $message;
+    public string $url;
+    public int $permohonanId;
 
-    public function __construct(Model $permohonan)
+    /**
+     * Constructor menggunakan cara lama, menerima parameter terpisah.
+     */
+    public function __construct(string $title, string $message, string $url, int $permohonanId)
     {
-        $this->permohonan = $permohonan;
-    }
-
-    public function via($notifiable): array
-    {
-        // Untuk contoh ini, kita fokus pada 'database' untuk web
-        return ['database'];
+        $this->title = $title;
+        $this->message = $message;
+        $this->url = $url;
+        $this->permohonanId = $permohonanId;
     }
 
     /**
-     * [PERBAIKAN] Mengembalikan data notifikasi yang lebih kaya dan terstruktur.
+     * Menentukan channel pengiriman notifikasi.
+     */
+    public function via($notifiable): array
+    {
+        $channels = ['database'];
+        if ($notifiable->fcm_token) {
+            $channels[] = FcmChannel::class;
+        }
+        return $channels;
+    }
+
+    /**
+     * Mengubah data notifikasi menjadi format array terstruktur.
      */
     public function toArray($notifiable): array
     {
-        // Asumsi model permohonan Anda memiliki method-method ini
-        // Jika tidak, sesuaikan dengan cara Anda mendapatkan data ini.
-        $jenisSurat = method_exists($this->permohonan, 'getJenisSurat') ? $this->permohonan->getJenisSurat() : 'Permohonan Baru';
-        $namaPemohon = $this->permohonan->masyarakat->nama_lengkap ?? 'Masyarakat';
-        $icon = method_exists($this->permohonan, 'getIcon') ? $this->permohonan->getIcon() : 'fas fa-file-alt';
+        // Mencoba membuat sub-judul dengan mengambil teks setelah kata "dari "
+        $sub_judul = 'Permohonan baru';
+        if (Str::contains($this->message, ' dari ')) {
+            $sub_judul = 'dari ' . Str::after($this->message, ' dari ');
+        }
         
-        // URL tujuan ketika notifikasi diklik
-        // Ganti 'nama.route.show' dengan nama route detail permohonan yang sesuai
-        $url = route('petugas.permohonan-kk-baru.show', $this->permohonan->id); 
-
         return [
-            'judul'     => $jenisSurat,
-            'sub_judul' => 'dari ' . Str::words($namaPemohon, 2, '...'),
-            'pesan'     => "Ada {$jenisSurat} baru dari {$namaPemohon}",
-            'ikon'      => $icon,
-            'url'       => $url,
+            'judul'     => $this->title,
+            'sub_judul' => Str::words($sub_judul, 3, '...'),
+            'pesan'     => $this->message,
+            'url'       => $this->url,
+            // Penting: Ikon akan selalu default karena tidak ada informasi ikon yang dikirim
+            'ikon'      => 'fas fa-file-alt', 
         ];
+    }
+
+    /**
+     * Mengubah data notifikasi menjadi format untuk dikirim via FCM.
+     */
+    public function toFcm($notifiable): FcmMessage
+    {
+        Log::info("[HYBRID FCM - PermohonanBaru] Mengirim notifikasi ke petugas ID: " . $notifiable->id);
+
+        $androidConfig = AndroidConfig::fromArray([
+            'priority' => 'high',
+            'notification' => [
+                'channel_id' => 'high_importance_channel',
+                'sound' => 'default',
+            ],
+        ]);
+        
+        $payloadData = $this->toArray($notifiable);
+        $payloadData['permohonan_id'] = (string) $this->permohonanId;
+        $payloadData['jenis_notifikasi'] = 'permohonan_baru_untuk_petugas';
+        $payloadData['url_webview'] = $this->url;
+        $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
+
+        // Memastikan semua value adalah string
+        foreach ($payloadData as $key => $value) {
+            $payloadData[$key] = (string) $value;
+        }
+
+        return FcmMessage::create()
+            ->setNotification([
+                'title' => $this->title,
+                'body' => $this->message,
+            ])
+            ->setData($payloadData)
+            ->setAndroid($androidConfig);
     }
 }

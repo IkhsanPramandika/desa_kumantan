@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonanSKUsaha;
-// [PERBAIKAN] Menggunakan kelas notifikasi yang benar
+
 use App\Notifications\StatusPermohonanDiperbarui;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -109,18 +109,25 @@ class PermohonanSKUsahaController extends Controller
     }
 
     public function tolak(Request $request, $id)
-    {
-        $request->validate(['catatan_penolakan' => 'required|string|max:500']);
-        $permohonan = PermohonanSKUsaha::with('masyarakat')->findOrFail($id);
-        $permohonan->status = 'ditolak';
-        $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
-        $permohonan->save();
+{
+    $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
+    
+    $permohonan = PermohonanSKUsaha::with('masyarakat')->findOrFail($id);
 
-        // [PERBAIKAN] Mengirim notifikasi menggunakan kelas yang benar.
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
+    // [PERUBAHAN] Status diubah menjadi 'membutuhkan_revisi'
+    $permohonan->status = 'membutuhkan_revisi'; 
+    
+    // Simpan catatan penolakan dari petugas
+    $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
+    $permohonan->save();
 
-        return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('error', 'Permohonan telah ditolak.');
-    }
+    // Kirim notifikasi ke masyarakat bahwa permohonan mereka perlu direvisi
+    // Pastikan Anda sudah membuat kelas notifikasi yang sesuai untuk ini.
+    Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
+
+    return redirect()->route('petugas.permohonan-sk-usaha.show', $id)
+                     ->with('success', 'Permohonan telah dikembalikan kepada pengguna untuk direvisi.');
+}
 
     public function downloadFinal($id)
     {
