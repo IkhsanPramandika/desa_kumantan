@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Petugas\Permohonan;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermohonanSKAhliWaris;
-use App\Notifications\PermohonanStatusUpdated;
+use App\Notifications\StatusPermohonanDiperbarui;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -43,41 +43,75 @@ class PermohonanSKAhliWarisController extends Controller
         $permohonan->status = 'diterima';
         $permohonan->save();
         
-        $title = "Permohonan Diverifikasi";
-        $message = "Permohonan SK Ahli Waris Anda (#{$permohonan->id}) telah kami verifikasi.";
-        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
         return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('success', 'Permohonan berhasil diverifikasi!');
     }
 
+    /**
+     * METHOD BARU: Menampilkan form edit surat.
+     */
+    public function editSurat($id)
+    {
+        $permohonan = PermohonanSKAhliWaris::findOrFail($id);
+        
+        if ($permohonan->status !== 'diterima') {
+            return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('error', 'Surat hanya bisa diproses untuk permohonan yang sudah diverifikasi.');
+        }
+
+        return view('petugas.pengajuan.sk_ahli_waris.edit_surat', compact('permohonan'));
+    }
+
+    /**
+     * METHOD LAMA (DIMODIFIKASI): Memproses data dari form edit dan membuat PDF.
+     */
     public function selesaikan(Request $request, $id)
     {
+        // 1. Validasi semua data yang masuk dari form edit
+        $validatedData = $request->validate([
+            'nama_pewaris' => 'required|string|max:255',
+            // Tambahkan validasi pewaris lain jika ada di form
+            
+            'daftar_ahli_waris' => 'required|array|min:1',
+            'daftar_ahli_waris.*.nama' => 'required|string|max:255',
+            'daftar_ahli_waris.*.nik' => 'required|string|max:255',
+            'daftar_ahli_waris.*.hubungan' => 'required|string|max:255',
+            'daftar_ahli_waris.*.alamat' => 'required|string',
+        ]);
+
         $permohonan = PermohonanSKAhliWaris::with('masyarakat')->findOrFail($id);
         if ($permohonan->status !== 'diterima') {
             return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('error', 'Surat hanya bisa dibuat untuk permohonan yang sudah diverifikasi.');
         }
 
         try {
-            $permohonan->status = 'selesai';
-            $permohonan->tanggal_selesai_proses = Carbon::now();
+            // 2. Update data permohonan di database
+            $permohonan->update($validatedData);
+            
+            // 3. Panggil fungsi penomoran otomatis
             $permohonan->generateNomorSurat('470');
 
+            // 4. Set data lain yang diperlukan
+            $permohonan->tanggal_selesai_proses = Carbon::now();
+
+            // 5. Generate PDF
             $pdf = Pdf::loadView('documents.sk_ahli_waris', ['permohonan' => $permohonan]);
-            $fileName = 'SK_Ahli_Waris_' . Str::slug($permohonan->nama_pewaris) . '_' . $permohonan->id . '.pdf';
+            $fileName = 'Surat Keterangan Ahli Waris_' . Str::slug($permohonan->nama_pemohon) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_ahli_waris/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
             
+            // 6. Simpan path file, ubah status, dan simpan semua perubahan
             $permohonan->file_hasil_akhir = $path;
+            $permohonan->status = 'selesai';
             $permohonan->save();
 
-            $title = "Permohonan Selesai";
-            $message = "Selamat! Permohonan SK Ahli Waris Anda (#{$permohonan->id}) telah selesai diproses.";
-            Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
+            // 7. Kirim notifikasi
+            Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
             return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('success', 'Surat Keterangan Ahli Waris berhasil dibuat.');
         } catch (\Exception $e) {
             Log::error("Gagal membuat PDF SK Ahli Waris untuk ID {$id}: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat membuat dokumen.');
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat membuat dokumen: ' . $e->getMessage());
         }
     }
 
@@ -88,10 +122,8 @@ class PermohonanSKAhliWarisController extends Controller
         $permohonan->status = 'ditolak';
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
-
-        $title = "Permohonan Ditolak";
-        $message = "Maaf, permohonan SK Ahli Waris Anda (#{$permohonan->id}) kami tolak. Alasan: " . $request->catatan_penolakan;
-        Notification::send($permohonan->masyarakat, new PermohonanStatusUpdated($permohonan, $title, $message, '#'));
+        
+        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
         return redirect()->route('petugas.permohonan-sk-ahli-waris.show', $id)->with('error', 'Permohonan telah ditolak.');
     }

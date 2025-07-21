@@ -51,28 +51,54 @@ class PermohonanSKUsahaController extends Controller
         return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('success', 'Permohonan berhasil diverifikasi!');
     }
 
+     public function editSurat($id)
+    {
+        $permohonan = PermohonanSKUsaha::findOrFail($id);
+        
+        // Pastikan hanya permohonan yang sudah diverifikasi yang bisa diproses
+        if ($permohonan->status !== 'diterima') {
+            return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('error', 'Surat hanya bisa diproses untuk permohonan yang sudah diverifikasi.');
+        }
+
+        return view('petugas.pengajuan.sk_usaha.edit_surat', compact('permohonan'));
+    }
+
+    /**
+     * METHOD LAMA (DIMODIFIKASI): Memproses data dari form edit dan membuat PDF.
+     */
     public function selesaikan(Request $request, $id)
     {
+        // 1. Validasi data yang masuk dari form edit
+        $validatedData = $request->validate([
+            'nama_pemohon' => 'required|string|max:255',
+            'nik_pemohon' => 'required|string|max:255',
+            'nama_usaha' => 'required|string|max:255',
+            'alamat_usaha' => 'required|string',
+            // Tambahkan validasi untuk field lain jika ada
+        ]);
+
         $permohonan = PermohonanSKUsaha::with('masyarakat')->findOrFail($id);
         if ($permohonan->status !== 'diterima') {
             return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('error', 'Surat hanya bisa dibuat untuk permohonan yang sudah diverifikasi.');
         }
 
         try {
-            $permohonan->status = 'selesai';
-            $permohonan->tanggal_selesai_proses = Carbon::now();
-            // Baris ini sepertinya dari trait, pastikan trait-nya ada dan berfungsi
-            // $permohonan->generateNomorSurat('503');
+            // 2. Update data permohonan di database dengan data yang sudah divalidasi
+            $permohonan->update($validatedData);
 
+            // 3. Generate PDF menggunakan data yang BARU di-update
             $pdf = Pdf::loadView('documents.sk_usaha', ['permohonan' => $permohonan]);
-            $fileName = 'SK_Usaha_' . Str::slug($permohonan->nama_usaha) . '_' . $permohonan->id . '.pdf';
+           $fileName = 'Surat Keterangan Usaha_' . Str::slug($permohonan->nama_pemohon) . '_' . $permohonan->id . '.pdf';
             $path = 'permohonan_sk_usaha/hasil_akhir/' . $fileName;
             Storage::disk('public')->put($path, $pdf->output());
 
+            // 4. Simpan path file dan ubah status menjadi 'selesai'
             $permohonan->file_hasil_akhir = $path;
+            $permohonan->status = 'selesai';
+            $permohonan->tanggal_selesai_proses = Carbon::now();
             $permohonan->save();
 
-            // [PERBAIKAN] Mengirim notifikasi menggunakan kelas yang benar.
+            // 5. Kirim notifikasi ke masyarakat
             Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
 
             return redirect()->route('petugas.permohonan-sk-usaha.show', $id)->with('success', 'Surat Keterangan Usaha berhasil dibuat.');

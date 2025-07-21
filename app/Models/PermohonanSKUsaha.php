@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Interfaces\PermohonanInterface;
-use App\Traits\NomorSuratGenerator; // 1. Pastikan ini di-include kembali
+use App\Traits\HasNomorSurat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
@@ -14,7 +14,7 @@ use App\Models\User;
 class PermohonanSKUsaha extends Model 
 {
     // 2. Aktifkan kembali generator dengan baris ini
-    use HasFactory, NomorSuratGenerator;
+    use HasFactory, HasNomorSurat;
     
 
     /**
@@ -29,8 +29,8 @@ class PermohonanSKUsaha extends Model
     protected $fillable = [
         'masyarakat_id', 'file_kk', 'file_ktp', 'nama_pemohon', 'nik_pemohon',
         'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'warganegara_agama',
-        'pekerjaan', 'alamat_pemohon', 'nama_usaha', 'alamat_usaha',
-        'catatan_pemohon', 'status', 'catatan_penolakan',
+        'pekerjaan', 'alamat_pemohon','keperluan_surat', 'nama_usaha', 'alamat_usaha',
+        'catatan_pemohon', 'status', 'catatan_penolakan', 
         'nomor_urut',
         'nomor_surat', 'file_hasil_akhir', 'tanggal_selesai_proses',
     ];

@@ -52,7 +52,7 @@
                     @forelse ($data as $item)
                         <tr>
                             <td>{{ $item->id }}</td>
-                            <td>{{ $item->nama_pemohon ?? 'N/A' }}</td>
+                            <td>{{ $item->masyarakat->nama_lengkap ?? 'N/A' }}</td>
                             <td>{{ $item->nama_terkait ?? '-' }}</td>
                             <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
                             <td>

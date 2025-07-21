@@ -36,7 +36,6 @@
                     <dt class="col-sm-4">NIK Ayah</dt><dd class="col-sm-8">{{ $permohonan->nik_ayah ?? '-' }}</dd>
                     <dt class="col-sm-4">Nama Ibu</dt><dd class="col-sm-8">{{ $permohonan->nama_ibu ?? '-' }}</dd>
                     <dt class="col-sm-4">NIK Ibu</dt><dd class="col-sm-8">{{ $permohonan->nik_ibu ?? '-' }}</dd>
-                    <dt class="col-sm-4">No. Buku Nikah</dt><dd class="col-sm-8">{{ $permohonan->no_buku_nikah ?? '-' }}</dd>
                 </dl>
                 
                 {{-- PERBAIKAN: Menambahkan bagian untuk menampilkan catatan pemohon --}}
@@ -72,14 +71,12 @@
                     </button>
                 
                 {{-- PERBAIKAN: Tombol 'Buat Surat' sekarang langsung memanggil route 'selesaikan' --}}
-                @elseif($permohonan->status == 'diterima')
-                    <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk membuat surat secara otomatis.</p>
-                    <form action="{{ route('petugas.permohonan-sk-kelahiran.selesaikan', $permohonan->id) }}" method="POST" class="mb-2">
-                        @csrf
-                        <button type="submit" class="btn btn-primary btn-block" onclick="return confirm('Anda akan membuat surat berdasarkan data yang sudah ada. Lanjutkan?')">
-                            <i class="fas fa-print"></i> Buat Surat & Selesaikan
-                        </button>
-                    </form>
+                 @elseif($permohonan->status == 'diterima')
+                <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk memproses dan mengedit data sebelum membuat surat final.</p>
+                <a href="{{ route('petugas.permohonan-sk-kelahiran.edit-surat', $permohonan->id) }}" class="btn btn-primary btn-block mb-2">
+                    <i class="fas fa-edit"></i> Proses & Edit Surat
+                </a>
+                  
                 
                 @elseif($permohonan->status == 'selesai')
                     <p>Surat telah dibuat pada {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->format('d F Y, H:i') : '' }}.</p>

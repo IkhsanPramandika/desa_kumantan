@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Interfaces\PermohonanInterface;
-use App\Traits\NomorSuratGenerator;
+use App\Traits\HasNomorSurat;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PermohonanSKTidakMampu extends Model implements PermohonanInterface
 {
-    use HasFactory,NomorSuratGenerator;
+    use HasFactory, HasNomorSurat;
 
     protected $table = 'permohonan_sk_tidak_mampu';
 
@@ -33,15 +33,16 @@ class PermohonanSKTidakMampu extends Model implements PermohonanInterface
      */
     protected $fillable = [
         'masyarakat_id', // Penting untuk relasi
-        'nama_pemohon',
-        'nik_pemohon',
-        'tempat_lahir_pemohon',
-        'tanggal_lahir_pemohon',
-        'jenis_kelamin_pemohon',
-        'agama_pemohon',
-        'kewarganegaraan_pemohon',
-        'pekerjaan_pemohon',
-        'alamat_pemohon',
+        'nama_lengkap',
+        'nik',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'agama',
+        'kewarganegaraan',
+        'pekerjaa',
+        'alamat',
+
         'nama_terkait',
         'nik_terkait',
         'tempat_lahir_terkait',

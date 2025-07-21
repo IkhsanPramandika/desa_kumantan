@@ -2,223 +2,83 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Surat Keterangan Kelahiran</title>
+    <title>Surat Pengantar Nikah</title>
     <style>
-        body {
-            font-family: 'Calibri', sans-serif; /* Font Calibri */
-            font-size: 11pt; /* Ukuran font dasar sedikit dikecilkan untuk efisiensi ruang */
-            line-height: 1.3; /* Mengurangi jarak antar baris */
-            margin: 0;
-            padding: 15px; /* Mengurangi padding halaman */
-        }
-        .container {
-            width: 90%; /* Lebar container diperbesar untuk memaksimalkan ruang */
-            margin: auto;
-            padding: 10px; /* Mengurangi padding container */
-        }
-        .header, .footer {
-            text-align: center;
-        }
-        .kop-surat {
-            text-align: center;
-            margin-bottom: 15px; /* Mengurangi margin bawah kop surat */
-            padding-bottom: 5px; /* Sedikit padding di bawah kop surat */
-        }
-        .kop-surat img {
-            width: 50px; /* Ukuran logo diperkecil menjadi 50px */
-            height: auto;
-            float: left;
-            margin-right: 15px;
-            vertical-align: middle; /* Memastikan logo sejajar dengan teks */
-        }
-        .kop-surat div { /* Kontainer untuk teks kop surat */
-            overflow: hidden; /* Clear float */
-        }
-        .kop-surat h3, .kop-surat h4 {
-            margin: 0;
-            padding: 0;
-            line-height: 1.1; /* Mengurangi jarak antar baris di kop */
-            font-weight: normal; /* Opsional: membuat teks kop tidak terlalu tebal */
-        }
-        .kop-surat h4 {
-            font-size: 10.5pt; /* Menyesuaikan ukuran font */
-        }
-        .kop-surat h3 {
-            font-size: 12.5pt; /* Menyesuaikan ukuran font */
-            font-weight: bold;
-        }
-        .kop-surat p {
-            margin: 0;
-            padding: 0;
-            font-size: 9pt; /* Menyesuaikan ukuran font */
-        }
-        .kop-surat hr {
-            border: 1.5px solid black; /* Tebal garis dikurangi sedikit */
-            margin-top: 5px;
-            clear: both; /* Penting: Pastikan HR di bawah float */
-        }
-        .title {
-            text-align: center;
-            font-weight: bold;
-            text-decoration: underline;
-            margin: 15px 0 8px 0; /* Mengurangi margin atas dan bawah */
-            font-size: 12.5pt; /* Menyesuaikan ukuran font */
-        }
-        .nomor-surat {
-            text-align: center;
-            font-size: 10.5pt; /* Menyesuaikan ukuran font */
-            margin-bottom: 15px; /* Mengurangi margin bawah nomor surat */
-        }
-        .content {
-            text-align: justify;
-            margin-bottom: 20px; /* Mengurangi margin bawah konten */
-        }
-        .content p {
-            margin-bottom: 5px; /* Mengurangi margin bawah paragraf */
-        }
-        .indent {
-            text-indent: 30px; /* Indentasi sedikit dikurangi */
-        }
-        table.data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 5px 0; /* Mengurangi margin atas dan bawah tabel */
-        }
-        table.data-table td {
-            padding: 1px 0; /* Mengurangi padding sel tabel */
-            vertical-align: top;
-            font-size: 11pt; /* Memastikan font di tabel sesuai body */
-        }
-        table.data-table td:first-child {
-            width: 30%;
-        }
-        table.data-table td:nth-child(2) {
-            width: 3%;
-        }
-        .signature {
-            width: 45%; /* Diperlebar sedikit agar TTD muat */
-            float: right;
-            text-align: center;
-            margin-top: 20px; /* Mengurangi margin atas tanda tangan */
-            font-size: 11pt; /* Memastikan font di tanda tangan sesuai body */
-        }
-       .signature-area {
-            min-height: 80px; /* Memberi ruang untuk TTD */
-            margin-top: 5px;
-            display: flex; /* Menggunakan flexbox untuk memposisikan gambar */
-            justify-content: center; /* Pusatkan secara horizontal */
-            align-items: center; /* Pusatkan secara vertikal */
-        }
-        .signature-area img {
-            max-width: 150px; /* Atur lebar maksimal gambar TTD */
-            height: auto;
-            margin-bottom: 5px; /* Beri sedikit jarak di bawah gambar */
-        }
-        .clearfix::after {
-            content: "";
-            clear: both;
-            display: table;
-        }
-        .footer {
-            position: absolute;
-            bottom: 15px; /* Mengurangi jarak footer dari bawah */
-            left: 0;
-            right: 0;
-        }
-        .footer p {
-            font-size: 7.5pt; /* Ukuran font footer sedikit lebih kecil */
-            text-align: center;
-        }
+        body{font-family:'Times New Roman',Times,serif;font-size:12pt;line-height:1.5;margin:2cm}
+        .container{width:100%}
+        .kop-surat{text-align:center;line-height:1.3;border-bottom:3px double black;padding-bottom:15px;margin-bottom:30px;position:relative}
+        .kop-surat .logo{width:80px;height:auto;position:absolute;left:0;top:0}
+        .kop-surat h1,.kop-surat h2,.kop-surat h3,.kop-surat p{margin:0}
+        .kop-surat h1{font-size:16pt;font-weight:bold}
+        .kop-surat h2{font-size:14pt}
+        .kop-surat h3{font-size:18pt;font-weight:bold}
+        .kop-surat p{font-size:10pt}
+        .judul-surat{text-align:center;margin-bottom:5px}
+        .judul-surat h4{font-size:14pt;font-weight:bold;text-decoration:underline;margin:0}
+        .nomor-surat{text-align:center;font-size:12pt;margin-bottom:30px}
+        .isi-surat{text-align:justify}
+        .isi-surat .paragraf{text-indent:50px;margin-bottom:15px}
+        .isi-surat .paragraf-non-indent{margin-bottom:15px;margin-left:50px}
+        .tabel-data{border-collapse:collapse;width:100%;margin-left:50px;margin-bottom:15px;margin-top:15px}
+        .tabel-data td{padding:2px;vertical-align:top}
+        .tabel-data .label{width:35%}
+        .tabel-data .separator{width:5%}
+        .tabel-data .data{font-weight:bold}
+        .tanda-tangan{margin-top:50px}
+        .blok-ttd{width:45%;float:right;text-align:center}
+        .blok-ttd .ttd-area{min-height:80px}
+        .blok-ttd .nama-pejabat{font-weight:bold;text-decoration:underline}
+        .clearfix::after{content:"";clear:both;display:table}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="kop-surat clearfix">
-            <img src="{{ public_path('sbadmin/img/logo_kampar.png') }}" alt="Logo Desa Kumantan">
-            <div>
-                <h4>PEMERINTAH KABUPATEN KAMPAR</h4>
-                <h4>KECAMATAN BANGKINANG KOTA</h4>
-                <h3>DESA KUMANTAN</h3>
-                <p>Alamat : JL. Mahmud Marzuki, Kelurahan Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar, Kode Pos 28463</p>
-            </div>
-            <hr>
+        <div class="kop-surat">
+            <img src="{{ public_path('sbadmin/img/logo_kampar.png') }}" alt="Logo Desa" class="logo">
+            <h1>PEMERINTAH KABUPATEN KAMPAR</h1>
+            <h2>KECAMATAN BANGKINANG KOTA</h2>
+            <h3>KEPALA DESA KUMANTAN</h3>
+            <p>Alamat: JL. Mahmud Marzuki, Kelurahan Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar, Kode Pos 28463</p>
         </div>
 
-        <div class="title">
-            SURAT PENGANTAR NIKAH
+        <div class="judul-surat">
+            <h4>SURAT PENGANTAR NIKAH</h4>
         </div>
         <div class="nomor-surat">
-            NO : {{ $nomor_surat ?? '01/SKK/DS/SM/' . \Carbon\Carbon::now()->translatedFormat('m/Y') }}
+            Nomor : {{ $permohonan->nomor_surat ?? '[NOMOR SURAT]' }}
         </div>
 
-        <div class="content">
-            <p class="indent">Yang bertanda tangan di bawah ini Kepala Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar menerangkan dengan sebenarnya bahwa :</p>
-            <table class="data-table">
-                <tr><td>Nama</td><td>:</td><td>FIRDAUS, S.Pd</td></tr>
-                <tr><td>Jabatan</td><td>:</td><td>Kepala Desa Kumantan</td></tr>
-                <tr><td>Kecamatan</td><td>:</td><td>Bangkinang Kota</td></tr>
-                <tr><td>Kabupaten</td><td>:</td><td>Kampar</td></tr>
+        <div class="isi-surat">
+            <p class="paragraf">Yang bertanda tangan di bawah ini Kepala Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar menerangkan dengan sebenarnya bahwa :</p>
+            
+            <p class="paragraf-non-indent"><strong>I. Calon Suami</strong></p>
+            <table class="tabel-data">
+                <tr><td class="label">Nama</td><td class="separator">:</td><td class="data">{{ strtoupper($permohonan->nama_pria ?? '-') }}</td></tr>
+                <tr><td class="label">NIK</td><td class="separator">:</td><td>{{ $permohonan->nik_pria ?? '-' }}</td></tr>
+                <tr><td class="label">Tempat, Tanggal Lahir</td><td class="separator">:</td><td>{{ $permohonan->tempat_lahir_pria ?? '-' }}, {{ $permohonan->tanggal_lahir_pria ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_pria)->isoFormat('D MMMM YYYY') : '-' }}</td></tr>
+                <tr><td class="label">Alamat</td><td class="separator">:</td><td>{{ $permohonan->alamat_pria ?? '-' }}</td></tr>
             </table>
 
-            <div class="content">
-            <p>Dengan ini menerangkan dengan sesungguhnya bahwa yang bersangkutan akan melangsungkan pernikahan</p>
-            <table class="data-table">
-                <tr>
-                    <td>Nama</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->nama }}</td>
-                </tr>
-                <tr>
-                    <td>Jenis Kelamin</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->jenis_kelamin }}</td>
-                </tr>
-                <tr>
-                    <td>Tempat dan Tanggal Lahir</td>
-                    <td>:</td>
-                    <td>
-                        {{ $data_pemohon->tempat_lahir }},
-                        {{ \Carbon\Carbon::parse($data_pemohon->tanggal_lahir)->translatedFormat('d F Y') }}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Nik</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->nik }}</td>
-                </tr>
-                <tr>
-                    <td>Agama</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->agama }}</td>
-                </tr>
-                <tr>
-                    <td>Pekerjaan</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->pekerjaan }}</td>
-                </tr>
-                <tr>
-                    <td>Alamat</td>
-                    <td>:</td>
-                    <td>{{ $data_pemohon->alamat }}</td>
-                </tr>
+            <p class="paragraf-non-indent"><strong>II. Calon Istri</strong></p>
+            <table class="tabel-data">
+                <tr><td class="label">Nama</td><td class="separator">:</td><td class="data">{{ strtoupper($permohonan->nama_wanita ?? '-') }}</td></tr>
+                <tr><td class="label">NIK</td><td class="separator">:</td><td>{{ $permohonan->nik_wanita ?? '-' }}</td></tr>
+                <tr><td class="label">Tempat, Tanggal Lahir</td><td class="separator">:</td><td>{{ $permohonan->tempat_lahir_wanita ?? '-' }}, {{ $permohonan->tanggal_lahir_wanita ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_wanita)->isoFormat('D MMMM YYYY') : '-' }}</td></tr>
+                <tr><td class="label">Alamat</td><td class="separator">:</td><td>{{ $permohonan->alamat_wanita ?? '-' }}</td></tr>
             </table>
+          
+            <p class="paragraf">Demikian surat pengantar ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
+        </div>
 
-            <p style="margin-top: 20px;">
-                Bahwa yang bersangkutan diatas benar - benar warga Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar.
-                 Untuk melengkapi persyaratan untuk menikah.</p>
-
-        <div class="signature clearfix">
-            Desa Kumantan, {{ \Carbon\Carbon::parse($permohonan->tanggal_selesai_proses ?? \Carbon\Carbon::now())->translatedFormat('d F Y') }}<br>
-            Kepala Desa Kumantan<br>
-            <div class="signature-area">
-                {{-- Masukkan gambar tanda tangan di sini --}}
-                <img src="{{ public_path('sbadmin/img/ttd_kepala_desa.png') }}" alt="Tanda Tangan Kepala Desa">
+        <div class="tanda-tangan clearfix">
+            <div class="blok-ttd">
+                Desa Kumantan, {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->isoFormat('D MMMM YYYY') : \Carbon\Carbon::now()->isoFormat('D MMMM YYYY') }}<br>
+                Kepala Desa Kumantan<br>
+                <div class="ttd-area">
+                    <img src="{{ public_path('sbadmin/img/ttd_kepala_desa.png') }}" alt="Tanda Tangan Kepala Desa" style="max-height: 80px; max-width: 150px;">
+                </div>
+                <strong class="nama-pejabat">FIRDAUS, S.Pd</strong><br>
             </div>
-            FIRDAUS, S.Pd<br>
-        </div>
-
-        <div class="footer">
-            <p>Dokumen ini dicetak secara elektronik oleh Sistem Informasi Layanan Desa Kumantan</p>
         </div>
     </div>
 </body>

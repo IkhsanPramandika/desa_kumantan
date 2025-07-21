@@ -52,7 +52,7 @@
                     @forelse ($data as $item)
                         <tr>
                             <td>{{ $item->id }}</td>
-                            <td>{{ $item->nama_pemohon ?? 'N/A' }}</td>
+                            <td>{{ $item->nama_lengkap ?? 'N/A' }}</td>
                             <td>{{ $item->nama_usaha ?? 'N/A' }}</td>
                             <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
                             <td>
@@ -93,7 +93,7 @@ $(document).ready(function() {
   }
   $('#dataTable').DataTable({
     "searching": false,
-    "paging": true,
+    "paging": false,
     "info": true,
     "order": [],
     "columnDefs": [ { "targets": 'no-sort', "orderable": true } ]

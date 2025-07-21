@@ -18,7 +18,7 @@
                 <dl class="row">
                     <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_pria ?? '-' }}</dd>
                     <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_pria ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pria ?? '-' }}, {{ $permohonan->tanggal_lahir_pria ? $permohonan->tanggal_lahir_pria->format('d F Y') : '-' }}</dd>
+                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pria ?? '-' }}, {{ $permohonan->tanggal_lahir_pria ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_pria)->isoFormat('D MMMM YYYY') : '-' }}</dd>
                     <dt class="col-sm-4">Alamat</dt><dd class="col-sm-8">{{ $permohonan->alamat_pria ?? '-' }}</dd>
                 </dl>
                 <hr>
@@ -26,21 +26,12 @@
                 <dl class="row">
                     <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_wanita ?? '-' }}</dd>
                     <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_wanita ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_wanita ?? '-' }}, {{ $permohonan->tanggal_lahir_wanita ? $permohonan->tanggal_lahir_wanita->format('d F Y') : '-' }}</dd>
+                    <dt class="col-sm-4">Tempat, Tgl Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_wanita ?? '-' }}, {{ $permohonan->tanggal_lahir_wanita ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_wanita)->isoFormat('D MMMM YYYY') : '-' }}</dd>
                     <dt class="col-sm-4">Alamat</dt><dd class="col-sm-8">{{ $permohonan->alamat_wanita ?? '-' }}</dd>
                 </dl>
-                <hr>
-                <h5 class="font-weight-bold">Detail Akad Nikah</h5>
-                <dl class="row">
-                    <dt class="col-sm-4">Tanggal</dt><dd class="col-sm-8">{{ $permohonan->tanggal_akad_nikah ? $permohonan->tanggal_akad_nikah->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Tempat</dt><dd class="col-sm-8">{{ $permohonan->tempat_akad_nikah ?? '-' }}</dd>
-                </dl>
-
-                {{-- PERBAIKAN: Menambahkan bagian Catatan dari Pemohon --}}
-                <hr>
+                
                 <h5 class="mt-4 font-weight-bold">Catatan dari Pemohon</h5>
                 <p><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></p>
-
             </div>
         </div>
     </div>
@@ -48,15 +39,16 @@
     {{-- KOLOM KANAN: STATUS, AKSI, DAN LAMPIRAN --}}
     <div class="col-lg-5">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Status & Aksi</h6>
                 @if ($permohonan->status == 'pending') <span class="badge badge-warning">Pending</span>
-                @elseif (in_array($permohonan->status, ['diterima', 'diproses'])) <span class="badge badge-info">{{ ucfirst($permohonan->status) }}</span>
+                @elseif ($permohonan->status == 'diterima') <span class="badge badge-info">Diterima</span>
                 @elseif ($permohonan->status == 'selesai') <span class="badge badge-success">Selesai</span>
                 @elseif ($permohonan->status == 'ditolak') <span class="badge badge-danger">Ditolak</span>
                 @endif
             </div>
             <div class="card-body">
+                {{-- --- LOGIKA IF-ELSEIF YANG SUDAH DIPERBAIKI --- --}}
                 @if($permohonan->status == 'pending')
                     <p>Periksa lampiran. Jika valid, klik "Verifikasi" untuk melanjutkan.</p>
                     <form action="{{ route('petugas.permohonan-sk-perkawinan.verifikasi', $permohonan->id) }}" method="POST" class="mb-2">
@@ -65,19 +57,18 @@
                     </form>
                     <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#tolakModal"><i class="fas fa-times"></i> Tolak</button>
                 
-                @elseif(in_array($permohonan->status, ['diterima', 'diproses']))
-                    <p>Permohonan diverifikasi. Klik tombol di bawah untuk membuat surat secara otomatis.</p>
-                    <form action="{{ route('petugas.permohonan-sk-perkawinan.selesaikan', $permohonan->id) }}" method="POST" class="mb-2">
-                        @csrf
-                        <button type="submit" class="btn btn-primary btn-block" onclick="return confirm('Anda akan membuat surat berdasarkan data yang sudah ada. Lanjutkan?')">
-                            <i class="fas fa-print"></i> Buat Surat & Selesaikan
-                        </button>
-                    </form>
+                @elseif($permohonan->status == 'diterima')
+                    <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk memproses dan mengedit data sebelum membuat surat final.</p>
+                    <a href="{{ route('petugas.permohonan-sk-perkawinan.edit-surat', $permohonan->id) }}" class="btn btn-primary btn-block mb-2">
+                        <i class="fas fa-edit"></i> Proses & Edit Surat
+                    </a>
                 
                 @elseif($permohonan->status == 'selesai')
-                    <p>Surat telah dibuat. Anda bisa mengunduhnya di bawah ini.</p>
-                    <a href="{{ route('petugas.permohonan-sk-perkawinan.download-final', $permohonan->id) }}" class="btn btn-success btn-block mb-2"><i class="fas fa-download"></i> Unduh Surat</a>
-                
+                    <p>Surat telah dibuat pada {{ $permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->format('d F Y, H:i') : '' }}.</p>
+                    <a href="{{ route('petugas.permohonan-sk-perkawinan.download-final', $permohonan->id) }}" class="btn btn-success btn-block">
+                        <i class="fas fa-download"></i> Unduh Surat
+                    </a>
+
                 @elseif($permohonan->status == 'ditolak')
                     <p>Permohonan ditolak dengan alasan:</p>
                     <blockquote class="blockquote-footer"><em>"{{ $permohonan->catatan_penolakan }}"</em></blockquote>
@@ -98,7 +89,7 @@
                             'surat_nikah_orang_tua' => 'Surat Nikah Orang Tua',
                             'kartu_imunisasi_catin' => 'Kartu Imunisasi Catin',
                             'sertifikat_elsimil' => 'Sertifikat Elsimil',
-                            'akta_penceraian' => 'Akta Perceraian (jika ada)',
+                            'akta_penceraian' => 'Akta Perceraian',
                         ];
                     @endphp
                     @foreach ($lampiran as $field => $label)

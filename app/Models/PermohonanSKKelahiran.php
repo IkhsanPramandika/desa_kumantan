@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Interfaces\PermohonanInterface;
-use App\Traits\NomorSuratGenerator;
+use App\Traits\HasNomorSurat;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  */
 class PermohonanSKKelahiran extends Model implements PermohonanInterface
 {
-    use HasFactory,NomorSuratGenerator;
+    use HasFactory,HasNomorSurat;
     protected $table = 'permohonan_sk_kelahiran';
 
     protected $fillable = [
@@ -39,7 +39,7 @@ class PermohonanSKKelahiran extends Model implements PermohonanInterface
         'nik_ayah',
         'nama_ibu',
         'nik_ibu',
-        'no_buku_nikah', // Jika diinput manual
+     
 
         // Diisi oleh sistem/petugas
         'status',

@@ -46,5 +46,74 @@
     
     @vite('resources/js/app.js')
 
+  <script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // URL untuk memeriksa notifikasi. Pastikan route ini benar.
+    const checkNotifUrl = "{{ route('petugas.notifikasi.check') }}";
+
+    // Elemen-elemen HTML di navbar Anda
+    const badgeElement = document.getElementById('notification-badge');
+    const dropdownListElement = document.getElementById('notification-dropdown-list');
+
+    // Fungsi untuk mengambil dan menampilkan notifikasi
+    function fetchNotifications() {
+        fetch(checkNotifUrl)
+            .then(response => {
+                if (!response.ok) {
+                    // Jika ada error dari server, hentikan proses
+                    return Promise.reject('Gagal mengambil data notifikasi.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update badge counter di sebelah lonceng
+                if (data.unread_count > 0) {
+                    badgeElement.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                    badgeElement.style.display = 'inline-block';
+                } else {
+                    badgeElement.style.display = 'none';
+                }
+
+                // Kosongkan daftar notifikasi yang lama
+                dropdownListElement.innerHTML = '';
+
+                // Isi kembali daftar dropdown dengan data baru
+                if (data.notifications.length === 0) {
+                    dropdownListElement.innerHTML = '<a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada notifikasi baru</a>';
+                } else {
+                    data.notifications.forEach(notif => {
+                        // Tampilan notifikasi baru yang lebih baik
+                        const itemHTML = `
+                        <a href="${notif.url}" class="dropdown-item d-flex align-items-center ${notif.is_unread ? 'bg-light' : ''}">
+                            <div class="mr-3">
+                                <div class="icon-circle bg-primary">
+                                    <i class="${notif.icon} text-white"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="small text-gray-500">${notif.waktu}</div>
+                                <span class="font-weight-bold d-block">${notif.judul}</span>
+                                <span>${notif.sub_judul}</span>
+                            </div>
+                        </a>`;
+                        dropdownListElement.innerHTML += itemHTML;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching notifications:', error);
+                dropdownListElement.innerHTML = '<a class="dropdown-item text-center small text-danger" href="#">Gagal memuat notifikasi</a>';
+            });
+    }
+
+    // Panggil fungsi saat halaman pertama kali dimuat
+    fetchNotifications();
+
+    // Atur interval untuk memanggil fungsi setiap 8 detik (8000 milidetik)
+    setInterval(fetchNotifications, 5000);
+});
+</script>
+
 </body>
 </html>

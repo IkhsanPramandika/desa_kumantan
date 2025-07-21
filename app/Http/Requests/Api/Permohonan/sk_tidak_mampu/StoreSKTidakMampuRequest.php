@@ -18,6 +18,9 @@ class StoreSKTidakMampuRequest extends FormRequest
     public function rules(): array
     {
         return [
+          
+            // ---------------------------------------------------------
+
             'nama_terkait' => 'nullable|string|max:255',
             'nik_terkait' => 'nullable|string|max:20',
             'tempat_lahir_terkait' => 'nullable|string|max:100',

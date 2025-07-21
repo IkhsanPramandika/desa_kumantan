@@ -14,32 +14,37 @@ class NotificationController extends Controller
      * Fungsi ini sekarang akan dipanggil dari route web, bukan api.
      */
     public function check(Request $request)
-    {
-        // Menggunakan Auth::user() yang bekerja dengan baik untuk sesi web
-        $user = Auth::user();
-
-        if (!$user) {
-            // Seharusnya tidak terjadi jika middleware 'auth' di web.php aktif
-            return response()->json(['error' => 'Unauthenticated.'], 401);
-        }
-
-        $unreadCount = $user->unreadNotifications()->count();
-
-        $notifications = $user->unreadNotifications()->take(5)->get()->map(function ($notif) {
-            // Pastikan route 'petugas.notifikasi.read' ada di web.php
-            return [
-                'id' => $notif->id,
-                'pesan' => Str::limit($notif->data['pesan'] ?? 'Notifikasi baru.', 40),
-                'waktu' => \Carbon\Carbon::parse($notif->created_at)->diffForHumans(),
-                'url' => route('petugas.notifikasi.read', $notif->id)
-            ];
-        });
-
-        return response()->json([
-            'unread_count' => $unreadCount,
-            'notifications' => $notifications
-        ]);
+{
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['error' => 'Unauthenticated.'], 401);
     }
+
+    $unreadCount = $user->unreadNotifications()->count();
+
+    // Modifikasi dimulai di sini
+    $notifications = $user->unreadNotifications()->take(5)->get()->map(function ($notif) {
+        
+        // Menentukan ikon berdasarkan jenis notifikasi (default ikon file)
+        $icon = $notif->data['ikon'] ?? 'fas fa-file-alt'; // Ambil dari data jika ada, jika tidak pakai default
+
+        return [
+            'id' => $notif->id,
+            // [PERBAIKAN] Gunakan 'judul' dan 'sub_judul' jika ada di data notifikasi
+            'judul' => $notif->data['judul'] ?? 'Notifikasi Baru',
+            'sub_judul' => $notif->data['sub_judul'] ?? Str::limit($notif->data['pesan'] ?? '', 40),
+            'waktu' => \Carbon\Carbon::parse($notif->created_at)->diffForHumans(),
+            'url' => route('petugas.notifikasi.read', $notif->id),
+            'icon' => $icon,
+            'is_unread' => $notif->unread() // Menambahkan status 'belum dibaca'
+        ];
+    });
+
+    return response()->json([
+        'unread_count' => $unreadCount,
+        'notifications' => $notifications
+    ]);
+}
 
     /**
      * Menampilkan halaman semua notifikasi (Untuk Web)

@@ -52,7 +52,7 @@
                     <?php $__empty_1 = true; $__currentLoopData = $data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
                             <td><?php echo e($item->id); ?></td>
-                            <td><?php echo e($item->nama_pemohon ?? 'N/A'); ?></td>
+                            <td><?php echo e($item->nama_lengkap ?? 'N/A'); ?></td>
                             <td><?php echo e($item->nama_usaha ?? 'N/A'); ?></td>
                             <td><?php echo e($item->created_at->format('d/m/Y H:i')); ?></td>
                             <td>
@@ -94,7 +94,7 @@ $(document).ready(function() {
   }
   $('#dataTable').DataTable({
     "searching": false,
-    "paging": true,
+    "paging": false,
     "info": true,
     "order": [],
     "columnDefs": [ { "targets": 'no-sort', "orderable": true } ]

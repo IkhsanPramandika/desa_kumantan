@@ -103,6 +103,7 @@ class SKUsahaApiController extends Controller
             'alamat_pemohon' => 'nullable|string',
             'nama_usaha' => 'nullable|string|max:255',
             'alamat_usaha' => 'nullable|string',
+            'keperluan_surat' => 'required|string|max:1000',
             'catatan_pemohon' => 'nullable|string',
         ]);
 
@@ -137,6 +138,7 @@ class SKUsahaApiController extends Controller
             'alamat_pemohon' => 'nullable|string',
             'nama_usaha' => 'nullable|string|max:255',
             'alamat_usaha' => 'nullable|string',
+            'keperluan_surat' => 'required|string|max:1000',
             'catatan_pemohon' => 'nullable|string',
         ]);
 

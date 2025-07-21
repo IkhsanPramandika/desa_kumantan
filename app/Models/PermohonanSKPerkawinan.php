@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Interfaces\PermohonanInterface;
-use App\Traits\NomorSuratGenerator;
+use App\Traits\HasNomorSurat;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  */
 class PermohonanSKPerkawinan extends Model implements PermohonanInterface
 {
-    use HasFactory,NomorSuratGenerator;
+    use HasFactory, HasNomorSurat;
 
     protected $table = 'permohonan_sk_perkawinan';
 
@@ -47,8 +47,6 @@ class PermohonanSKPerkawinan extends Model implements PermohonanInterface
         'tempat_lahir_wanita',
         'tanggal_lahir_wanita',
         'alamat_wanita',
-        'tanggal_akad_nikah',
-        'tempat_akad_nikah',
         'nomor_surat',
         'nomor_urut',
         'tanggal_selesai_proses',

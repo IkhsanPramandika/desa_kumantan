@@ -18,17 +18,23 @@
                 <dl class="row">
                     <dt class="col-sm-4">Nama</dt><dd class="col-sm-8">{{ $permohonan->nama_pewaris ?? '-' }}</dd>
                     <dt class="col-sm-4">NIK</dt><dd class="col-sm-8">{{ $permohonan->nik_pewaris ?? '-' }}</dd>
-                    <dt class="col-sm-4">Tempat / Tanggal Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pewaris ?? '-' }}, {{ $permohonan->tanggal_lahir_pewaris ? $permohonan->tanggal_lahir_pewaris->format('d F Y') : '-' }}</dd>
-                    <dt class="col-sm-4">Tanggal Meninggal</dt><dd class="col-sm-8">{{ $permohonan->tanggal_meninggal_pewaris ? $permohonan->tanggal_meninggal_pewaris->format('d F Y') : '-' }}</dd>
+                    <dt class="col-sm-4">Tempat / Tanggal Lahir</dt><dd class="col-sm-8">{{ $permohonan->tempat_lahir_pewaris ?? '-' }}, {{ $permohonan->tanggal_lahir_pewaris ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_pewaris)->isoFormat('D MMMM YYYY') : '-' }}</dd>
+                    <dt class="col-sm-4">Tanggal Meninggal</dt><dd class="col-sm-8">{{ $permohonan->tanggal_meninggal_pewaris ? \Carbon\Carbon::parse($permohonan->tanggal_meninggal_pewaris)->isoFormat('D MMMM YYYY') : '-' }}</dd>
                     <dt class="col-sm-4">Alamat Pewaris</dt><dd class="col-sm-8">{{ $permohonan->alamat_pewaris ?? '-' }}</dd>
                 </dl>
                 <hr>
                 <h5 class="font-weight-bold mt-4">Daftar Ahli Waris</h5>
-                @if(!empty($permohonan->daftar_ahli_waris))
+                
+                @php
+                    // Secara manual mengubah JSON string menjadi array PHP
+                    $ahliWarisList = is_string($permohonan->daftar_ahli_waris) ? json_decode($permohonan->daftar_ahli_waris, true) : $permohonan->daftar_ahli_waris;
+                @endphp
+
+                @if(!empty($ahliWarisList))
                     <table class="table table-bordered table-sm mt-3">
                         <thead><tr><th>Nama</th><th>NIK</th><th>Hubungan</th><th>Alamat</th></tr></thead>
                         <tbody>
-                            @foreach($permohonan->daftar_ahli_waris as $ahli)
+                            @foreach($ahliWarisList as $ahli)
                             <tr>
                                 <td>{{ $ahli['nama'] ?? '-' }}</td>
                                 <td>{{ $ahli['nik'] ?? '-' }}</td>
@@ -42,7 +48,6 @@
                     <p><em>Tidak ada data ahli waris yang diinput.</em></p>
                 @endif
 
-                {{-- PERBAIKAN: Menambahkan bagian Catatan dari Pemohon --}}
                 <hr>
                 <h5 class="mt-4 font-weight-bold">Catatan dari Pemohon</h5>
                 <p><em>{{ $permohonan->catatan_pemohon ?? 'Tidak ada catatan.' }}</em></p>
@@ -54,15 +59,24 @@
     {{-- KOLOM KANAN: STATUS, AKSI, DAN LAMPIRAN --}}
     <div class="col-lg-5">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Status & Aksi</h6>
                 @if ($permohonan->status == 'pending') <span class="badge badge-warning">Pending</span>
-                @elseif (in_array($permohonan->status, ['diterima', 'diproses'])) <span class="badge badge-info">{{ ucfirst($permohonan->status) }}</span>
+                @elseif ($permohonan->status == 'diterima') <span class="badge badge-info">Diterima</span>
                 @elseif ($permohonan->status == 'selesai') <span class="badge badge-success">Selesai</span>
                 @elseif ($permohonan->status == 'ditolak') <span class="badge badge-danger">Ditolak</span>
                 @endif
             </div>
             <div class="card-body">
+                {{-- BAGIAN BARU: INFO PEMOHON --}}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Diajukan Oleh:</small>
+                    <strong>{{ $permohonan->masyarakat->nama_lengkap ?? 'N/A' }}</strong><br>
+                    <small class="text-muted d-block mt-1">NIK Pemohon:</small>
+                    <strong>{{ $permohonan->masyarakat->nik ?? 'N/A' }}</strong>
+                </div>
+                <hr>
+
                 @if($permohonan->status == 'pending')
                     <p>Periksa lampiran. Jika data yang diajukan sudah benar, klik "Verifikasi".</p>
                     <form action="{{ route('petugas.permohonan-sk-ahli-waris.verifikasi', $permohonan->id) }}" method="POST" class="mb-2">
@@ -71,14 +85,11 @@
                     </form>
                     <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#tolakModal"><i class="fas fa-times"></i> Tolak</button>
                 
-                @elseif(in_array($permohonan->status, ['diterima', 'diproses']))
-                    <p>Permohonan diverifikasi. Klik tombol di bawah untuk membuat surat secara otomatis.</p>
-                     <form action="{{ route('petugas.permohonan-sk-ahli-waris.selesaikan', $permohonan->id) }}" method="POST" class="mb-2">
-                        @csrf
-                        <button type="submit" class="btn btn-primary btn-block" onclick="return confirm('Anda akan membuat surat berdasarkan data yang sudah ada. Lanjutkan?')">
-                            <i class="fas fa-print"></i> Buat Surat & Selesaikan
-                        </button>
-                    </form>
+                @elseif($permohonan->status == 'diterima')
+                    <p>Permohonan telah diverifikasi. Klik tombol di bawah untuk memproses dan mengedit data sebelum membuat surat final.</p>
+                    <a href="{{ route('petugas.permohonan-sk-ahli-waris.edit-surat', $permohonan->id) }}" class="btn btn-primary btn-block mb-2">
+                        <i class="fas fa-edit"></i> Proses & Edit Surat
+                    </a>
 
                 @elseif($permohonan->status == 'selesai')
                     <p>Surat telah dibuat. Anda bisa mengunduhnya di bawah ini.</p>

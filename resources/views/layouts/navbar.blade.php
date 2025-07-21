@@ -19,56 +19,33 @@
         </div>
     </form>
 
-    <!-- Bagian Kanan Navbar -->
-    <ul class="navbar-nav ml-auto">
+            <!-- Bagian Kanan Navbar -->
+            <ul class="navbar-nav ml-auto">
 
-        <!-- Dropdown Notifikasi (Desain Baru dengan ID yang sudah disesuaikan) -->
-        <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <li class="nav-item dropdown no-arrow mx-1">
+            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-bell fa-fw"></i>
-                
-                {{-- PERBAIKAN 1: ID diubah menjadi "notification-badge" --}}
-                <span class="badge badge-danger badge-counter" id="notification-badge" style="display: {{ auth()->user()->unreadNotifications->count() > 0 ? 'inline' : 'none' }};">
-                    {{ auth()->user()->unreadNotifications->count() }}
-                </span>
+                <span class="badge badge-danger badge-counter" id="notification-badge" style="display: none;"></span>
             </a>
             
-            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                aria-labelledby="alertsDropdown">
-                
-                {{-- PERBAIKAN 2: Diberi ID "notification-header-count" --}}
-                <h6 class="dropdown-header" id="notification-header-count">
-                    {{ auth()->user()->unreadNotifications->count() }} Notifikasi Baru
+            
+            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="alertsDropdown">
+                <h6 class="dropdown-header">
+                    Pusat Notifikasi
                 </h6>
 
-                {{-- PERBAIKAN 3: ID diubah menjadi "notification-dropdown-list" --}}
                 <div id="notification-dropdown-list">
-                    @forelse (auth()->user()->unreadNotifications->take(5) as $notification)
-                        <a href="{{ route('petugas.notifikasi.read', $notification->id) }}" class="dropdown-item d-flex align-items-center">
-                            <div class="mr-3">
-                                <div class="icon-circle bg-primary">
-                                    <i class="fas fa-file-alt text-white"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="small text-gray-500">
-                                    {{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}
-                                </div>
-                                <span class="font-weight-bold">
-                                    {{ Str::limit($notification->data['pesan'], 40) }}
-                                </span>
-                            </div>
-                        </a>
-                    @empty
-                        <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada notifikasi baru</a>
-                    @endforelse
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="spinner-border spinner-border-sm mr-2" role="status">
+                        <span class="sr-only">Loading...</span>
+                        </div>
+                        Memuat notifikasi...
+                    </a>
                 </div>
 
-                <a class="dropdown-item text-center small text-gray-500" href="{{ route('petugas.notifikasi.index') }}">Tampilkan Semua</a>
+                <a class="dropdown-item text-center small text-gray-500" href="{{ route('petugas.notifikasi.index') }}">Tampilkan Semua Notifikasi</a>
             </div>
         </li>
-
         <!-- Divider -->
         <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -84,12 +61,12 @@
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="#">
-                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i> Profile
+                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i> Profil
                 </a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="#"
                     onclick="event.preventDefault(); document.getElementById('logout-form-modal').submit();">
-                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i> Logout
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i> Keluar
                 </a>
                 <form id="logout-form-modal" action="{{ route('logout') }}" method="POST" style="display: none;">
                     @csrf

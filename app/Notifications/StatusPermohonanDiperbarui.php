@@ -1,8 +1,5 @@
 <?php
 
-// ===================================================================
-// File: app/Notifications/StatusPermohonanDiperbarui.php (Final - Hybrid Payload)
-// ===================================================================
 
 namespace App\Notifications;
 

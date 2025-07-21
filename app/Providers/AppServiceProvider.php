@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-// 1. TAMBAHKAN BARIS INI
 use Illuminate\Pagination\Paginator;
+use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,5 +27,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // 2. TAMBAHKAN BARIS INI DI DALAM METHOD BOOT
         Paginator::useBootstrap();
+        Carbon::setLocale('id'); // <-- TAMBAHKAN BARIS INI
     }
 }
