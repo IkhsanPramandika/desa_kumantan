@@ -31,7 +31,7 @@ class PermohonanLainnya extends Model
 
     public function masyarakat(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'masyarakat_id');
+        return $this->belongsTo(\App\Models\Masyarakat::class, 'masyarakat_id');
     }
 
     // Helper untuk notifikasi (sesuaikan jika perlu)
@@ -50,4 +50,5 @@ class PermohonanLainnya extends Model
     {
         return route('petugas.permohonan-lainnya.show', $this->id);
     }
+
 }

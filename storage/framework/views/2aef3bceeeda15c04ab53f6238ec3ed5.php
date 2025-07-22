@@ -1,4 +1,19 @@
 
+
+
+<?php $__env->startPush('styles'); ?>
+<style>
+    .sidebar .nav-item .nav-link .sidebar-text-wrap {
+        /* Memaksa teks untuk turun baris jika perlu */
+        white-space: normal;
+        /* Sedikit penyesuaian agar terlihat rapi saat diciutkan */
+        line-height: 1.2;
+        /* Memberi sedikit jarak dari ikon */
+        margin-left: 0.25rem; 
+    }
+</style>
+<?php $__env->stopPush(); ?>
+
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
@@ -32,14 +47,15 @@
         Layanan Desa
     </div>
 
+    
+
     <!-- Nav Item - Layanan Kartu Keluarga -->
     <?php $isKKActive = request()->is('petugas/permohonan-kk-*'); ?>
     <li class="nav-item <?php echo e($isKKActive ? 'active' : ''); ?>">
         <a class="nav-link <?php echo e($isKKActive ? '' : 'collapsed'); ?>" href="#" data-toggle="collapse" data-target="#collapseKK"
             aria-expanded="<?php echo e($isKKActive ? 'true' : 'false'); ?>" aria-controls="collapseKK">
             <i class="fas fa-fw fa-id-card"></i>
-            
-            <span style="white-space: normal; line-height: 1.2;">Layanan Kartu Keluarga</span>
+            <span class="sidebar-text-wrap">Layanan Kartu Keluarga</span>
         </a>
         <div id="collapseKK" class="collapse <?php echo e($isKKActive ? 'show' : ''); ?>" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
@@ -57,8 +73,7 @@
         <a class="nav-link <?php echo e($isSKActive ? '' : 'collapsed'); ?>" href="#" data-toggle="collapse" data-target="#collapseSK"
             aria-expanded="<?php echo e($isSKActive ? 'true' : 'false'); ?>" aria-controls="collapseSK">
             <i class="fas fa-fw fa-file-alt"></i>
-            
-            <span style="white-space: normal; line-height: 1.2;">Layanan Surat Keterangan</span>
+            <span class="sidebar-text-wrap"> Surat Keterangan</span>
         </a>
         <div id="collapseSK" class="collapse <?php echo e($isSKActive ? 'show' : ''); ?>" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">

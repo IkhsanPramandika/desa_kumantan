@@ -48,6 +48,7 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
    Route::get('/notifikasi/check', [NotificationController::class, 'check'])->name('notifikasi.check');
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
     Route::get('/notifikasi/baca/{id}', [NotificationController::class, 'markAsRead'])->name('notifikasi.read');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
     // --- Profile Petugas ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -1,46 +1,54 @@
 <?php
+// Lokasi: app/Http/Controllers/Petugas/Dashboard/SearchController.php
 
 namespace App\Http\Controllers\Petugas\Dashboard;
-use App\Http\Controllers\Controller;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-// Import model-model yang mungkin ingin Anda cari
-// use App\Models\PermohonananKKBaru;
-// use App\Models\PermohonananSKUsaha;
+use Illuminate\Support\Collection;
 
 class SearchController extends Controller
 {
     public function index(Request $request)
     {
-        $query = $request->input('query'); // Mengambil nilai dari input pencarian
-
-        // Lakukan logika pencarian Anda di sini
-        // Contoh: Mencari permohonan KK Baru berdasarkan catatan atau nama file
-        // $results = PermohonananKKBaru::where('catatan', 'like', '%' . $query . '%')
-        //                             ->orWhere('file_kk', 'like', '%' . $query . '%')
-        //                             ->get();
-
-        // Atau Anda bisa mencari di beberapa model dan menggabungkan hasilnya
-        $results = collect(); // Koleksi kosong untuk menampung hasil
+        $query = $request->input('query');
+        $results = new Collection();
 
         if ($query) {
-            // Contoh pencarian di PermohonananKKBaru
-            $kkBaruResults = \App\Models\PermohonanKKBaru::where('catatan', 'like', '%' . $query . '%')
-                                ->orWhere('file_kk', 'like', '%' . $query . '%')
-                                ->get();
-            $results = $results->merge($kkBaruResults);
+            $searchableModels = [
+                \App\Models\PermohonanKKBaru::class => ['catatan_pemohon'],
+                \App\Models\PermohonanKKHilang::class => ['catatan_pemohon'],
+                \App\Models\PermohonanKKPerubahanData::class => ['catatan_pemohon'],
+                \App\Models\PermohonanSKDomisili::class => ['nama_pemohon_atau_lembaga', 'keperluan_domisili'],
+                \App\Models\PermohonanSKKelahiran::class => ['nama_anak', 'nama_ayah', 'nama_ibu'],
+                \App\Models\PermohonanSKPerkawinan::class => ['nama_pria', 'nama_wanita'],
+                \App\Models\PermohonanSKTidakMampu::class => ['nama_terkait', 'keperluan_surat'],
+                \App\Models\PermohonanSKUsaha::class => ['nama_usaha', 'alamat_usaha', 'keperluan_surat'],
+                \App\Models\PermohonanSKAhliWaris::class => ['nama_pewaris'],
+                \App\Models\PermohonanLainnya::class => ['judul_permohonan', 'keperluan', 'rincian_pemohon'],
+            ];
 
-            // Contoh pencarian di PermohonananSKUsaha
-            $skUsahaResults = \App\Models\PermohonanSKUsaha::where('nama_usaha', 'like', '%' . $query . '%')
-                                ->orWhere('alamat_usaha', 'like', '%' . $query . '%')
-                                ->get();
-            $results = $results->merge($skUsahaResults);
+            foreach ($searchableModels as $modelClass => $fields) {
+                $modelQuery = $modelClass::query()->with('masyarakat');
 
-            // Anda bisa menambahkan logika pencarian untuk model lain di sini
+                $modelQuery->where(function ($q) use ($fields, $query) {
+                    // Mencari di dalam data permohonan itu sendiri
+                    foreach ($fields as $field) {
+                        $q->orWhere($field, 'like', '%' . $query . '%');
+                    }
+                   
+                    $q->orWhereHas('masyarakat', function ($subQ) use ($query) {
+                        $subQ->where('nama_lengkap', 'like', '%' . $query . '%')
+                             ->orWhere('nik', 'like', '%' . $query . '%');
+                    });
+                });
+                
+                $results = $results->merge($modelQuery->get());
+            }
+            
+            $results = $results->sortByDesc('created_at');
         }
 
-
-        // Kemudian, tampilkan hasilnya di view
-        return view('search.results', compact('query', 'results')); // Anda perlu membuat view ini
+        return view('search.results', compact('query', 'results'));
     }
 }
