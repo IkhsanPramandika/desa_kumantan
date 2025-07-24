@@ -22,6 +22,8 @@ class PermohonanKKHilang extends Model implements PermohonanInterface
         'masyarakat_id',
         'surat_pengantar_rt_rw',
         'surat_keterangan_hilang_kepolisian',
+         'file_kk_lama',
+         'file_ktp_pemohon',
         'catatan_pemohon', // Direkomendasikan untuk konsistensi
         'status',
         'nomor_urut',

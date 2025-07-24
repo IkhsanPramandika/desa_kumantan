@@ -69,35 +69,39 @@ class PermohonanBaru extends Notification implements ShouldQueue
     /**
      * Mengubah data notifikasi menjadi format untuk dikirim via FCM.
      */
-    public function toFcm($notifiable): FcmMessage
-    {
-        Log::info("[HYBRID FCM - PermohonanBaru] Mengirim notifikasi ke petugas ID: " . $notifiable->id);
+  public function toFcm($notifiable): FcmMessage
+{
+    Log::info("[HYBRID FCM] Mengirim notifikasi ke User ID: " . $notifiable->id . " - Tipe: " . get_class($this));
 
-        $androidConfig = AndroidConfig::fromArray([
-            'priority' => 'high',
-            'notification' => [
-                'channel_id' => 'high_importance_channel',
-                'sound' => 'default',
-            ],
-        ]);
-        
-        $payloadData = $this->toArray($notifiable);
-        $payloadData['permohonan_id'] = (string) $this->permohonanId;
-        $payloadData['jenis_notifikasi'] = 'permohonan_baru_untuk_petugas';
-        $payloadData['url_webview'] = $this->url;
-        $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
+    $androidConfig = AndroidConfig::fromArray([
+        'priority' => 'high',
+        'notification' => [
+            'channel_id' => 'high_importance_channel',
+            'sound' => 'default',
+        ],
+    ]);
 
-        // Memastikan semua value adalah string
-        foreach ($payloadData as $key => $value) {
-            $payloadData[$key] = (string) $value;
-        }
+    $payloadData = $this->toArray($notifiable);
+    $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
 
-        return FcmMessage::create()
-            ->setNotification([
-                'title' => $this->title,
-                'body' => $this->message,
-            ])
-            ->setData($payloadData)
-            ->setAndroid($androidConfig);
+    // Memastikan semua value adalah string
+    foreach ($payloadData as $key => $value) {
+        $payloadData[$key] = (string) $value;
+    }
+
+    $fcmMessage = FcmMessage::create()
+        ->setNotification([
+            'title' => $this->title ?? $this->judulNotifikasi, // Sesuaikan dengan nama properti yang benar
+            'body' => $this->message ?? $this->pesanNotifikasi, // Sesuaikan
+        ])
+        ->setData($payloadData)
+        ->setAndroid($androidConfig);
+
+    // --- TAMBAHKAN LOG INI ---
+    Log::info("[HYBRID FCM] Payload yang akan dikirim ke FCM:");
+    Log::info(json_encode($fcmMessage->toArray(), JSON_PRETTY_PRINT));
+    // --- AKHIR TAMBAHAN LOG ---
+
+    return $fcmMessage;
     }
 }

@@ -8,14 +8,11 @@
 
     <title>Sistem Informasi Layanan Desa Kumantan - Login Petugas</title>
 
-    <!-- Fonts and Icons -->
     <link href="<?php echo e(asset('sbadmin/vendor/fontawesome-free/css/all.min.css')); ?>" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
-    <!-- Core Stylesheet -->
     <link href="<?php echo e(asset('sbadmin/css/sb-admin-2.min.css')); ?>" rel="stylesheet">
 
-    
     <style>
         .login-branding-panel {
             background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
@@ -54,9 +51,6 @@
         .form-control-icon-input {
             padding-left: 2.75rem !important;
         }
-        .small a {
-            transition: color 0.2s ease-in-out;
-        }
     </style>
 </head>
 
@@ -68,7 +62,6 @@
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
                         <div class="row">
-                            
                             <div class="col-lg-6 d-none d-lg-block login-branding-panel">
                                 <img src="<?php echo e(asset('sbadmin/img/logo_kampar.png')); ?>" alt="Logo Kabupaten Kampar">
                                 <h2>Layanan Desa Kumantan</h2>
@@ -92,7 +85,6 @@
                                     <form method="POST" action="<?php echo e(route('login')); ?>" class="user">
                                         <?php echo csrf_field(); ?>
 
-                                        
                                         <div class="form-group form-group-icon">
                                             <i class="fas fa-envelope form-control-icon"></i>
                                             <input type="email" class="form-control form-control-user form-control-icon-input <?php $__errorArgs = ['email'];
@@ -117,23 +109,33 @@ endif;
 unset($__errorArgs, $__bag); ?>
                                         </div>
 
-                                        <div class="form-group form-group-icon">
-                                            <i class="fas fa-lock form-control-icon"></i>
-                                            <input type="password" class="form-control form-control-user form-control-icon-input <?php $__errorArgs = ['password'];
+                                        
+                                        <div class="form-group">
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text" style="padding-left: 1rem; padding-right: 1rem; background: #f8f9fc; border-right: none;"><i class="fas fa-lock text-gray-500"></i></span>
+                                                </div>
+                                                <input type="password" class="form-control form-control-user <?php $__errorArgs = ['password'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
 $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
-unset($__errorArgs, $__bag); ?>"
-                                                id="password" name="password" required placeholder="Password">
-                                            <?php $__errorArgs = ['password'];
+unset($__errorArgs, $__bag); ?>" style="border-left: none; padding-left: 0.5rem;"
+                                                    id="password" name="password" required placeholder="Password">
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary toggle-password" type="button" style="border-left: none; border-top-right-radius: 0.35rem; border-bottom-right-radius: 0.35rem;">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                             <?php $__errorArgs = ['password'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
 $message = $__bag->first($__errorArgs[0]); ?>
-                                                <span class="invalid-feedback" role="alert"><strong><?php echo e($message); ?></strong></span>
+                                                <span class="invalid-feedback d-block" role="alert"><strong><?php echo e($message); ?></strong></span>
                                             <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
@@ -171,6 +173,22 @@ unset($__errorArgs, $__bag); ?>
     <script src="<?php echo e(asset('sbadmin/vendor/jquery-easing/jquery.easing.min.js')); ?>"></script>
     <script src="<?php echo e(asset('sbadmin/js/sb-admin-2.min.js')); ?>"></script>
 
+    <script>
+    $(document).ready(function() {
+        $(".toggle-password").click(function() {
+            var icon = $(this).find('i');
+            var input = $(this).closest('.input-group').find('input[type="password"], input[type="text"]'); // Target both types
+
+            if (input.attr("type") == "password") {
+                input.attr("type", "text");
+                icon.removeClass("fa-eye").addClass("fa-eye-slash");
+            } else {
+                input.attr("type", "password");
+                icon.removeClass("fa-eye-slash").addClass("fa-eye");
+            }
+        });
+    });
+    </script>
+
 </body>
-</html>
-<?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/auth/login.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/auth/login.blade.php ENDPATH**/ ?>

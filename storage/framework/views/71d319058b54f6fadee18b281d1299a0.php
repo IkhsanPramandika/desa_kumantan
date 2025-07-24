@@ -111,5 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+
+
 </body>
 </html><?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/layouts/app.blade.php ENDPATH**/ ?>

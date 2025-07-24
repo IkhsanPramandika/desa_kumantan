@@ -62,7 +62,7 @@
                         $lampiran = [
                             'surat_pengantar_rt_rw' => 'Surat Pengantar RT/RW',
                             'surat_keterangan_hilang_kepolisian' => 'Surat Hilang dari Kepolisian',
-                            'file_kk_lama' => 'Scan KK Lama (jika ada)',
+                            'file_kk_lama' => 'Scan KK Lama',
                             'file_ktp_pemohon' => 'Scan KTP Pemohon',
                         ];
                     ?>

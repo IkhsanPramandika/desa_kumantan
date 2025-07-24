@@ -1,11 +1,16 @@
 <?php
 
 use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
 use App\Providers\BroadcastServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\RouteServiceProvider;
+use App\Providers\FirebaseServiceProvider; 
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
-use Barryvdh\DomPDF\ServiceProvider as DomPDFServiceProvider; // Pastikan ini ada dan TIDAK ADA TYPO
-use Barryvdh\DomPDF\Facade\Pdf as PDFFacade;; // Pastikan ini ada dan TIDAK ADA TYPO (Facade, bukan Facde)
+use Barryvdh\DomPDF\ServiceProvider as DomPDFServiceProvider;
+use Barryvdh\DomPDF\Facade\Pdf as PDFFacade;
+use NotificationChannels\Fcm\FcmServiceProvider; 
 
 return [
 
@@ -47,7 +52,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Jakarta',
 
     /*
     |--------------------------------------------------------------------------
@@ -94,11 +99,38 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'providers' => ServiceProvider::defaultProviders()->merge([
+    'providers' => [
+        /*
+         * Laravel Framework Service Providers...
+         */
+        Illuminate\Auth\AuthServiceProvider::class,
+        Illuminate\Broadcasting\BroadcastServiceProvider::class,
+        Illuminate\Bus\BusServiceProvider::class,
+        Illuminate\Cache\CacheServiceProvider::class,
+        Illuminate\Foundation\Providers\ConsoleSupportServiceProvider::class,
+        Illuminate\Cookie\CookieServiceProvider::class,
+        Illuminate\Database\DatabaseServiceProvider::class,
+        Illuminate\Encryption\EncryptionServiceProvider::class,
+        Illuminate\Filesystem\FilesystemServiceProvider::class,
+        Illuminate\Foundation\Providers\FoundationServiceProvider::class,
+        Illuminate\Hashing\HashServiceProvider::class,
+        Illuminate\Mail\MailServiceProvider::class,
+        Illuminate\Notifications\NotificationServiceProvider::class,
+        Illuminate\Pagination\PaginationServiceProvider::class,
+        Illuminate\Pipeline\PipelineServiceProvider::class,
+        Illuminate\Queue\QueueServiceProvider::class,
+        Illuminate\Redis\RedisServiceProvider::class,
+        Illuminate\Auth\Passwords\PasswordResetServiceProvider::class,
+        Illuminate\Session\SessionServiceProvider::class,
+        Illuminate\Translation\TranslationServiceProvider::class,
+        Illuminate\Validation\ValidationServiceProvider::class,
+        Illuminate\View\ViewServiceProvider::class,
+
         /*
          * Package Service Providers...
          */
-        DomPDFServiceProvider::class, // <-- PASTIKAN BARIS INI ADA UNTUK DOMPDF
+        DomPDFServiceProvider::class, // Untuk DomPDF
+        // NotificationChannels\Fcm\FcmServiceProvider::class, // <-- PASTIKAN INI ADA DI SINI
 
         /*
          * Application Service Providers...
@@ -108,10 +140,8 @@ return [
         App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-        App\Providers\FirebaseServiceProvider::class,
-    ])->toArray(),
-
-    
+        App\Providers\FirebaseServiceProvider::class, // Pastikan ini adalah service provider yang benar untuk Firebase Anda
+    ],
 
     /*
     |--------------------------------------------------------------------------

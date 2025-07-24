@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Surat Keterangan Tidak Mampu</title>
+    <title>Surat Keterangan Kelahiran</title>
     <style>
         body{font-family:'Times New Roman',Times,serif;font-size:12pt;line-height:1.5;margin:2cm}
         .container{width:100%}
@@ -41,91 +41,73 @@
             <p>Alamat: JL. Mahmud Marzuki, Kelurahan Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar, Kode Pos 28463</p>
         </div>
 
-        <div class="judul-surat"><h4>SURAT KETERANGAN TIDAK MAMPU</h4></div>
+        <div class="judul-surat">
+            <h4>SURAT KETERANGAN KELAHIRAN</h4>
+        </div>
         <div class="nomor-surat">
-            Nomor : <?php echo e($permohonan->nomor_surat ?? '[NOMOR_SURAT]'); ?>
+            Nomor : <?php echo e($permohonan->nomor_surat ?? '[NOMOR SURAT]'); ?>
 
         </div>
 
         <div class="isi-surat">
             <p class="paragraf">Yang bertanda tangan di bawah ini Kepala Desa Kumantan, Kecamatan Bangkinang Kota, Kabupaten Kampar, dengan ini menerangkan bahwa:</p>
 
+            <p class="paragraf-non-indent">Telah lahir seorang anak:</p>
             <table class="tabel-data">
                 <tr>
                     <td class="label">Nama</td>
                     <td class="separator">:</td>
-                    <td class="data"><?php echo e(strtoupper($permohonan->masyarakat->nama_lengkap ?? '-')); ?></td>
-                </tr>
-                <tr>
-                    <td class="label">NIK</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->masyarakat->nik ?? '-'); ?></td>
+                    <td class="data"><?php echo e(strtoupper($permohonan->nama_anak ?? '-')); ?></td>
                 </tr>
                 <tr>
                     <td class="label">Tempat, Tanggal Lahir</td>
                     <td class="separator">:</td>
-                    <td><?php echo e($permohonan->masyarakat->tempat_lahir ?? '-'); ?>, <?php echo e($permohonan->masyarakat->tanggal_lahir ? \Carbon\Carbon::parse($permohonan->masyarakat->tanggal_lahir)->isoFormat('D MMMM YYYY') : '-'); ?></td>
+                    <td><?php echo e($permohonan->tempat_lahir_anak ?? '-'); ?>, <?php echo e($permohonan->tanggal_lahir_anak ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_anak)->isoFormat('D MMMM YYYY') : '-'); ?></td>
                 </tr>
                 <tr>
-                    <td class="label">Pekerjaan</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->masyarakat->pekerjaan ?? '-'); ?></td>
-                </tr>
-                <tr>
-                    <td class="label">Alamat</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->masyarakat->alamat_lengkap ?? '-'); ?></td>
-                </tr>
-            </table>
-
-            <p class="paragraf">Berdasarkan data yang ada dan pengamatan kami bahwa benar nama tersebut di atas merupakan warga yang tergolong tidak mampu.</p>
-
-            <?php if($permohonan->nama_terkait): ?>
-            <p class="paragraf">Surat keterangan ini dibuat sebagai kelengkapan administrasi untuk keperluan <?php echo e($permohonan->keperluan_surat ?? '[Keperluan]'); ?> bagi anak/orang tua dari yang bersangkutan, yaitu:</p>
-            <table class="tabel-data">
-                <tr>
-                    <td class="label">Nama</td>
-                    <td class="separator">:</td>
-                    <td class="data"><?php echo e(strtoupper($permohonan->nama_terkait ?? '-')); ?></td>
-                </tr>
-                <tr>
-                    <td class="label">NIK</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->nik_terkait ?? '-'); ?></td>
-                </tr>
-                <tr>
-                    <td class="label">Tempat, Tanggal Lahir</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->tempat_lahir_terkait ?? '-'); ?>, <?php echo e($permohonan->tanggal_lahir_terkait ? \Carbon\Carbon::parse($permohonan->tanggal_lahir_terkait)->isoFormat('D MMMM YYYY') : '-'); ?></td>
-                </tr>
-                 <tr>
                     <td class="label">Jenis Kelamin</td>
                     <td class="separator">:</td>
-                    <td><?php echo e($permohonan->jenis_kelamin_terkait ?? '-'); ?></td>
-                </tr>
-                <tr>
-                    <td class="label">Pekerjaan/Sekolah</td>
-                    <td class="separator">:</td>
-                    <td><?php echo e($permohonan->pekerjaan_atau_sekolah_terkait ?? '-'); ?></td>
+                    <td><?php echo e($permohonan->jenis_kelamin_anak ?? '-'); ?></td>
                 </tr>
             </table>
-            <?php else: ?>
-            <p class="paragraf">Surat keterangan ini dibuat sebagai kelengkapan administrasi untuk keperluan <?php echo e($permohonan->keperluan_surat ?? '[Keperluan]'); ?>.</p>
-            <?php endif; ?>
 
-            <p class="paragraf">Demikian surat keterangan ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
+            <p class="paragraf">Anak tersebut adalah benar anak dari pasangan suami istri:</p>
+            <table class="tabel-data">
+                <tr>
+                    <td class="label">Nama Ayah</td>
+                    <td class="separator">:</td>
+                    <td><?php echo e($permohonan->nama_ayah ?? '-'); ?></td>
+                </tr>
+                <tr>
+                    <td class="label">NIK Ayah</td>
+                    <td class="separator">:</td>
+                    <td><?php echo e($permohonan->nik_ayah ?? '-'); ?></td>
+                </tr>
+                <tr>
+                    <td class="label">Nama Ibu</td>
+                    <td class="separator">:</td>
+                    <td><?php echo e($permohonan->nama_ibu ?? '-'); ?></td>
+                </tr>
+                <tr>
+                    <td class="label">NIK Ibu</td>
+                    <td class="separator">:</td>
+                    <td><?php echo e($permohonan->nik_ibu ?? '-'); ?></td>
+                </tr>
+            </table>
+
+            <p class="paragraf">Demikian surat keterangan kelahiran ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
         </div>
 
         <div class="tanda-tangan clearfix">
             <div class="blok-ttd">
-                Kumantan, <?php echo e($permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->isoFormat('D MMMM YYYY') : \Carbon\Carbon::now()->isoFormat('D MMMM YYYY')); ?><br>
-                Kepala Desa Kumantan,<br>
+                Desa Kumantan, <?php echo e($permohonan->tanggal_selesai_proses ? $permohonan->tanggal_selesai_proses->isoFormat('D MMMM YYYY') : \Carbon\Carbon::now()->isoFormat('D MMMM YYYY')); ?><br>
+                Kepala Desa Kumantan<br>
                 <div class="ttd-area">
-                    <img src="<?php echo e(public_path('sbadmin/img/ttd_kepala_desa.png')); ?>" alt="Tanda Tangan Kepala Desa" style="max-height: 80px; max-width: 120px;">
+                    <img src="<?php echo e(public_path('sbadmin/img/ttd_kepala_desa.png')); ?>" alt="Tanda Tangan Kepala Desa" style="max-height: 80px; max-width: 150px;">
                 </div>
                 <strong class="nama-pejabat">FIRDAUS, S.Pd</strong><br>
             </div>
         </div>
     </div>
 </body>
-</html><?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/documents/sk_tidak_mampu.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\PA\desa_kumantan\desa_kumantan\resources\views/documents/sk_kelahiran.blade.php ENDPATH**/ ?>

@@ -18,7 +18,7 @@ class ProfileController extends Controller
     {
         // Mengambil data pengguna yang sedang login
         $user = Auth::user();
-        return view('layouts.profile_petugas', compact('user'));
+        return view('petugas.profile.edit', compact('user'));
     }
 
     /**
@@ -38,7 +38,7 @@ class ProfileController extends Controller
         $user->email = $validated['email'];
         $user->save();
 
-        return redirect()->route('layouts.profile_petugas')->with('status', 'profile-updated');
+        return redirect()->route('petugas.profile.edit')->with('status', 'profile-updated');
     }
 
     /**
@@ -56,6 +56,6 @@ class ProfileController extends Controller
         $user->password = Hash::make($validated['password']);
         $user->save();
 
-        return redirect()->route('layouts.profile_petugas')->with('status', 'password-updated');
+        return redirect()->route('petugas.profile.edit')->with('status', 'password-updated');
     }
 }

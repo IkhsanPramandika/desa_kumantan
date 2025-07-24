@@ -60,8 +60,9 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
     /**
      * Menentukan channel pengiriman notifikasi (database untuk web, fcm untuk mobile).
      */
-    public function via(object $notifiable): array
+    public function via($notifiable): array
     {
+        Log::info('[DEBUG Notif] via() method called. Notifiable ID: ' . $notifiable->id . ', FCM Token: ' . ($notifiable->fcm_token ?? 'NULL')); // <-- Tambahkan ini
         $channels = ['database'];
         if ($notifiable->fcm_token) {
             $channels[] = FcmChannel::class;
@@ -98,34 +99,40 @@ class StatusPermohonanDiperbarui extends Notification implements ShouldQueue
     /**
      * Mengubah data notifikasi menjadi format untuk dikirim via Firebase Cloud Messaging (FCM).
      */
-    public function toFcm(object $notifiable): FcmMessage
-    {
-        Log::info("[HYBRID FCM - StatusPermohonanDiperbarui] Mengirim notifikasi ke User ID: {$notifiable->id}");
+   public function toFcm($notifiable): FcmMessage
+{
+    Log::info("[HYBRID FCM] Mengirim notifikasi ke User ID: " . $notifiable->id . " - Tipe: " . get_class($this));
 
-        $androidConfig = AndroidConfig::fromArray([
-            'priority' => 'high',
-            'notification' => [
-                'channel_id' => 'high_importance_channel',
-                'sound' => 'default',
-            ],
-        ]);
+    $androidConfig = AndroidConfig::fromArray([
+        'priority' => 'high',
+        'notification' => [
+            'channel_id' => 'high_importance_channel',
+            'sound' => 'default',
+        ],
+    ]);
 
-        // Mengambil data dari toArray() agar konsisten
-        $payloadData = $this->toArray($notifiable);
-        
-        // Memastikan semua value adalah string untuk kompatibilitas FCM
-        foreach ($payloadData as $key => $value) {
-            $payloadData[$key] = (string) $value;
-        }
-        $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
+    $payloadData = $this->toArray($notifiable);
+    $payloadData['click_action'] = 'FLUTTER_NOTIFICATION_CLICK';
 
-
-        return FcmMessage::create()
-            ->setNotification([
-                'title' => $this->judulNotifikasi,
-                'body' => $this->pesanNotifikasi,
-            ])
-            ->setData($payloadData)
-            ->setAndroid($androidConfig);
+    // Memastikan semua value adalah string
+    foreach ($payloadData as $key => $value) {
+        $payloadData[$key] = (string) $value;
     }
+
+    $fcmMessage = FcmMessage::create()
+        ->setNotification([
+            'title' => $this->title ?? $this->judulNotifikasi, // Sesuaikan dengan nama properti yang benar
+            'body' => $this->message ?? $this->pesanNotifikasi, // Sesuaikan
+        ])
+        ->setData($payloadData)
+        ->setAndroid($androidConfig);
+
+    // --- TAMBAHKAN LOG INI ---
+    Log::info("[HYBRID FCM] Payload yang akan dikirim ke FCM:");
+    Log::info(json_encode($fcmMessage->toArray(), JSON_PRETTY_PRINT));
+    // --- AKHIR TAMBAHAN LOG ---
+
+    return $fcmMessage;
+}
+
 }

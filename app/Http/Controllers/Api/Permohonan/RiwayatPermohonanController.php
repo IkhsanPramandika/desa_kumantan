@@ -17,6 +17,7 @@ use App\Models\PermohonanSKKelahiran;
 use App\Models\PermohonanSKPerkawinan;
 use App\Models\PermohonanSKTidakMampu;
 use App\Models\PermohonanSKUsaha;
+use App\Models\PermohonanLainnya;
 
 class RiwayatPermohonanController extends Controller
 {
@@ -29,11 +30,12 @@ class RiwayatPermohonanController extends Controller
             'permohonan-kk-hilang' => ['model' => PermohonanKKHilang::class, 'nama' => 'Permohonan KK Hilang'],
             'permohonan-kk-perubahan-data' => ['model' => PermohonanKKPerubahanData::class, 'nama' => 'Perubahan Data KK'],
             'permohonan-sk-ahli-waris' => ['model' => PermohonanSKAhliWaris::class, 'nama' => 'SK Ahli Waris'],
-            'permmohonan-sk-domisili' => ['model' => PermohonanSKDomisili::class, 'nama' => 'SK Domisili'],
+            'permohonan-sk-domisili' => ['model' => PermohonanSKDomisili::class, 'nama' => 'SK Domisili'],
             'permohonan-sk-kelahiran' => ['model' => PermohonanSKKelahiran::class, 'nama' => 'SK Kelahiran'],
-            'permohonansk-perkawinan' => ['model' => PermohonanSKPerkawinan::class, 'nama' => 'SK Perkawinan'],
+            'permohonan-sk-perkawinan' => ['model' => PermohonanSKPerkawinan::class, 'nama' => 'SK Perkawinan'],
             'permohonan-sk-tidak-mampu' => ['model' => PermohonanSKTidakMampu::class, 'nama' => 'SK Tidak Mampu'],
             'permohonan-sk-usaha' => ['model' => PermohonanSKUsaha::class, 'nama' => 'SK Usaha'],
+            'permohonan-sk-lainnya' => ['model' => PermohonanLainnya::class, 'nama' => 'SK Lainnya (Khusus)'],
         ];
 
         $allPermohonan = new Collection();
@@ -77,36 +79,41 @@ class RiwayatPermohonanController extends Controller
         return response()->json($paginatedItems);
     }
 
-    public function show(Request $request, $jenis_surat_slug, $id)
-    {
-        $user = $request->user();
+   public function show(Request $request, $jenis_surat_slug, $id)
+{
+    $user = $request->user();
 
-        $modelMap = [
-            'permohonan-kk-baru' => PermohonanKKBaru::class,
-            'permohonan-kk-perubahan-data' => PermohonanKKPerubahanData::class,
-            'permohonan-kk-hilang' => PermohonanKKHilang::class,
-            'permohonan-sk-ahli-waris' => PermohonanSKAhliWaris::class,
-            'permohonan-sk-kelahiran' => PermohonanSKKelahiran::class,
-            'permohonan-sk-domisili' => PermohonanSKDomisili::class,
-            'permohonan-sk-perkawinan' => PermohonanSKPerkawinan::class,
-            'permohonan-sk-tidak-mampu' => PermohonanSKTidakMampu::class,
-            'permohonan-sk-usaha' => PermohonanSKUsaha::class,
-        ];
+    // [1. UBAH STRUKTUR MAP INI]
+    // Samakan strukturnya seperti di method index(), tambahkan key 'nama'
+    $modelMap = [
+        'permohonan-kk-baru'          => ['model' => PermohonanKKBaru::class, 'nama' => 'Permohonan KK Baru'],
+        'permohonan-kk-hilang'        => ['model' => PermohonanKKHilang::class, 'nama' => 'Permohonan KK Hilang'],
+        'permohonan-kk-perubahan-data'=> ['model' => PermohonanKKPerubahanData::class, 'nama' => 'Perubahan Data KK'],
+        'permohonan-sk-ahli-waris'    => ['model' => PermohonanSKAhliWaris::class, 'nama' => 'SK Ahli Waris'],
+        'permohonan-sk-domisili'      => ['model' => PermohonanSKDomisili::class, 'nama' => 'SK Domisili'],
+        'permohonan-sk-kelahiran'     => ['model' => PermohonanSKKelahiran::class, 'nama' => 'SK Kelahiran'],
+        'permohonan-sk-perkawinan'    => ['model' => PermohonanSKPerkawinan::class, 'nama' => 'SK Perkawinan'],
+        'permohonan-sk-tidak-mampu'   => ['model' => PermohonanSKTidakMampu::class, 'nama' => 'SK Tidak Mampu'],
+        'permohonan-sk-usaha'         => ['model' => PermohonanSKUsaha::class, 'nama' => 'SK Usaha'],
+        'permohonan-sk-lainnya'       => ['model' => PermohonanLainnya::class, 'nama' => 'SK Lainnya (Khusus)'],
+    ];
 
-        if (!isset($modelMap[$jenis_surat_slug])) {
-            return response()->json(['message' => 'Jenis permohonan tidak valid.'], 404);
-        }
-
-        $modelClass = $modelMap[$jenis_surat_slug];
-        
-        $permohonan = $modelClass::with('masyarakat')->find($id);
-
-        if (!$permohonan || $permohonan->masyarakat_id !== $user->id) {
-            return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
-        }
-        
-        $permohonan->jenis_surat = $modelMap[$jenis_surat_slug];
-
-        return response()->json($permohonan);
+    if (!isset($modelMap[$jenis_surat_slug])) {
+        return response()->json(['message' => 'Jenis permohonan tidak valid.'], 404);
     }
+
+    // [2. AMBIL MODEL DARI MAP]
+    $modelClass = $modelMap[$jenis_surat_slug]['model'];
+    
+    $permohonan = $modelClass::with('masyarakat')->find($id);
+
+    if (!$permohonan || $permohonan->masyarakat_id !== $user->id) {
+        return response()->json(['message' => 'Permohonan tidak ditemukan.'], 404);
+    }
+    
+    // [3. AMBIL NAMA SURAT DARI MAP, BUKAN NAMA MODEL]
+    $permohonan->jenis_surat = $modelMap[$jenis_surat_slug]['nama'];
+
+    return response()->json($permohonan);
+}
 }

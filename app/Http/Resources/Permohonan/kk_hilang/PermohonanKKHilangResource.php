@@ -26,7 +26,7 @@ class PermohonanKKHilangResource extends JsonResource
             
             'surat_pengantar_rt_rw_url' => $this->surat_pengantar_rt_rw ? Storage::disk('public')->url($this->surat_pengantar_rt_rw) : null,
             'surat_keterangan_hilang_kepolisian_url' => $this->surat_keterangan_hilang_kepolisian ? Storage::disk('public')->url($this->surat_keterangan_hilang_kepolisian) : null,
-            
+            'file_kk_lama' => $this->file_kk_lama ? Storage::disk('public')->url($this->file_kk_lama) : null,
             'file_hasil_akhir_url' => $this->file_hasil_akhir ? Storage::disk('public')->url($this->file_hasil_akhir) : null,
             
             // Contoh jika ada relasi ke masyarakat dan ingin menampilkannya

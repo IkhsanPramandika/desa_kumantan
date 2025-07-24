@@ -19,9 +19,11 @@ use App\Http\Controllers\Api\Permohonan\RiwayatPermohonanController;
 use App\Http\Controllers\Api\Auth\MasyarakatForgotPasswordController;
 use App\Http\Controllers\Api\Permohonan\PermohonanLainnyaApiController;
 
-Route::get('/pengumuman', [PengumumanApiController::class, 'index'])->name('api.pengumuman.index');
-Route::get('/pengumuman/{slug}', [PengumumanApiController::class, 'show'])->name('api.pengumuman.show');
-
+Route::prefix('pengumuman')->name('api.pengumuman.')->group(function () {
+    Route::get('/', [PengumumanApiController::class, 'index'])->name('index');
+    Route::post('/', [PengumumanApiController::class, 'store'])->name('store')->middleware('auth:sanctum'); // Tambahkan middleware untuk proteksi
+    Route::get('/{slug}', [PengumumanApiController::class, 'show'])->name('show');
+});
 Route::prefix('masyarakat')->name('api.masyarakat.')->group(function () {
     Route::post('register', [MasyarakatAuthController::class, 'register'])->name('register');
     Route::post('login', [MasyarakatAuthController::class, 'login'])->name('login');

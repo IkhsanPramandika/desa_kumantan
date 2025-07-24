@@ -13,7 +13,7 @@
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
 @elseif (session('status') === 'password-updated')
-     <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
         <strong>Sukses!</strong> Password Anda telah berhasil diubah.
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
@@ -82,25 +82,49 @@
                             @csrf
                             @method('PUT')
 
+                            {{-- Password Saat Ini --}}
                             <div class="form-group">
                                 <label for="current_password">Password Saat Ini</label>
-                                <input id="current_password" type="password" class="form-control @error('current_password', 'updatePassword') is-invalid @enderror" name="current_password" required>
+                                <div class="input-group">
+                                    <input id="current_password" type="password" class="form-control @error('current_password', 'updatePassword') is-invalid @enderror" name="current_password" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 @error('current_password', 'updatePassword')
-                                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                    <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
 
+                            {{-- Password Baru --}}
                             <div class="form-group">
                                 <label for="password">Password Baru</label>
-                                <input id="password" type="password" class="form-control @error('password', 'updatePassword') is-invalid @enderror" name="password" required>
+                                <div class="input-group">
+                                    <input id="password" type="password" class="form-control @error('password', 'updatePassword') is-invalid @enderror" name="password" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 @error('password', 'updatePassword')
-                                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                    <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
 
+                            {{-- Konfirmasi Password Baru --}}
                             <div class="form-group">
                                 <label for="password_confirmation">Konfirmasi Password Baru</label>
-                                <input id="password_confirmation" type="password" class="form-control" name="password_confirmation" required>
+                                <div class="input-group">
+                                    <input id="password_confirmation" type="password" class="form-control" name="password_confirmation" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-primary">Ubah Password</button>
@@ -112,3 +136,30 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Ketika tombol dengan class .toggle-password di-klik
+    $(".toggle-password").click(function() {
+        // Cari elemen ikon di dalam tombol yang di-klik
+        var icon = $(this).find('i');
+        // Cari elemen input di dalam grup yang sama
+        var input = $(this).closest('.input-group').find('input');
+
+        // Toggle (ubah) tipe input
+        if (input.attr("type") == "password") {
+            // Jika tipenya password, ubah ke text
+            input.attr("type", "text");
+            // Ubah ikon mata menjadi mata-coret
+            icon.removeClass("fa-eye").addClass("fa-eye-slash");
+        } else {
+            // Jika tipenya text, ubah kembali ke password
+            input.attr("type", "password");
+            // Ubah ikon kembali menjadi mata
+            icon.removeClass("fa-eye-slash").addClass("fa-eye");
+        }
+    });
+});
+</script>
+@endpush

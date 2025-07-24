@@ -88,7 +88,7 @@ class PetugasController extends Controller
         ));
     }
 
-    public function masyarakatIndex(Request $request)
+   public function masyarakatIndex(Request $request)
     {
         $query = Masyarakat::latest();
 
@@ -106,7 +106,9 @@ class PetugasController extends Controller
             $query->where('status_akun', $request->status_akun);
         }
 
-        $masyarakat = $query->paginate(10)->withQueryString();
+        // [FITUR BARU] Menambahkan fitur jumlah data per halaman
+        $perPage = $request->input('per_page', 10);
+        $masyarakat = $query->paginate($perPage)->withQueryString();
 
         return view('petugas.masyarakat.index', compact('masyarakat'));
     }
@@ -132,7 +134,11 @@ class PetugasController extends Controller
         
         $masyarakat->save();
         
-        return redirect()->route('petugas.masyarakat.index')->with('success', 'Status akun berhasil diperbarui.');
+        // Anda bisa menambahkan notifikasi di sini jika diperlukan
+        // Notification::send($masyarakat, new AkunStatusUpdatedNotification($masyarakat));
+
+        // [PERBAIKAN UX] Kembali ke halaman detail setelah update
+        return redirect()->route('petugas.masyarakat.show', $masyarakat->id)->with('success', 'Status akun berhasil diperbarui.');
     }
 
     public function showResetPasswordFormByPetugas(Masyarakat $masyarakat)
@@ -149,6 +155,7 @@ class PetugasController extends Controller
         $masyarakat->password = Hash::make($request->password);
         $masyarakat->save();
 
-        return redirect()->route('petugas.masyarakat.index')->with('success', 'Password untuk akun ' . $masyarakat->nama_lengkap . ' berhasil direset.');
+        // [PERBAIKAN UX] Kembali ke halaman detail setelah update
+        return redirect()->route('petugas.masyarakat.show', $masyarakat->id)->with('success', 'Password untuk akun ' . $masyarakat->nama_lengkap . ' berhasil direset.');
     }
 }

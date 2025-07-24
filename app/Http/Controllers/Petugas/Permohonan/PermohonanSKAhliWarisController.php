@@ -72,7 +72,7 @@ class PermohonanSKAhliWarisController extends Controller
             'tanggal_lahir_pewaris' => 'required|date',
             'tanggal_meninggal_pewaris' => 'required|date',
             'alamat_pewaris' => 'required|string',
-            'daftar_ahli_waris' => 'required|json', // Validasi dasar, bisa diperkuat jika perlu
+            'daftar_ahli_waris' => 'required|array', // Validasi dasar, bisa diperkuat jika perlu
         ]);
 
         $permohonan = PermohonanSKAhliWaris::with('masyarakat')->findOrFail($id);

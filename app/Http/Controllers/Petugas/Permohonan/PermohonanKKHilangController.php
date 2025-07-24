@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\Masyarakat; // Pastikan ini ada
+use Illuminate\Support\Facades\Log; // Pastikan ini ada
 
 class PermohonanKKHilangController extends Controller
 {
@@ -41,31 +43,50 @@ class PermohonanKKHilangController extends Controller
 
     public function verifikasi($id)
     {
+        Log::info('[DEBUG Notif] Metode verifikasi dipanggil untuk PermohonanKKHilang ID: ' . $id);
+
         $permohonan = PermohonanKKHilang::with('masyarakat')->findOrFail($id);
         $permohonan->status = 'diterima';
         $permohonan->save();
+        Log::info('[DEBUG Notif] Permohonan status diperbarui menjadi diterima.');
         
-        $title = "Permohonan Diverifikasi";
-        $message = "Permohonan KK Hilang Anda (#{$permohonan->id}) telah kami verifikasi.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // Dapatkan objek masyarakat yang terkait
+        $masyarakat = $permohonan->masyarakat;
+
+        if ($masyarakat) {
+            Log::info('[DEBUG Notif] Masyarakat ditemukan untuk verifikasi: ' . $masyarakat->id);
+            if (empty($masyarakat->fcm_token)) {
+                Log::warning('[DEBUG Notif] Masyarakat ID: ' . $masyarakat->id . ' tidak memiliki FCM token untuk verifikasi.');
+            }
+
+            try {
+                // Panggil notifikasi hanya dengan objek $permohonan
+                $masyarakat->notify(new StatusPermohonanDiperbarui($permohonan));
+                Log::info('[DEBUG Notif] Notifikasi StatusPermohonanDiperbarui berhasil dipanggil untuk verifikasi.');
+            } catch (\Exception $e) {
+                Log::error('[DEBUG Notif] Gagal mengirim notifikasi verifikasi: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
+            }
+        } else {
+            Log::warning('[DEBUG Notif] Masyarakat tidak ditemukan untuk permohonan ID: ' . $id . ' saat verifikasi.');
+        }
 
         return redirect()->route('petugas.permohonan-kk-hilang.show', $id)->with('success', 'Permohonan berhasil diverifikasi.');
     }
 
-     public function tolak(Request $request, $id)
+      public function tolak(Request $request, $id)
     {
         $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
         
         $permohonan = PermohonanKKHilang::with('masyarakat')->findOrFail($id);
 
-        // Mengubah status menjadi 'membutuhkan_revisi'
         $permohonan->status = 'membutuhkan_revisi';
-        
-        // Menyimpan catatan penolakan dari petugas
         $permohonan->catatan_penolakan = $request->catatan_penolakan;
         $permohonan->save();
         
-        // Mengirim notifikasi ke pengguna bahwa permohonan perlu direvisi
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
         return redirect()->route('petugas.permohonan-kk-hilang.show', $id)
@@ -74,53 +95,68 @@ class PermohonanKKHilangController extends Controller
 
     public function selesaikan(Request $request, $id)
     {
+        Log::info('[DEBUG Notif] Metode selesaikan dipanggil untuk PermohonanKKHilang ID: ' . $id);
+
         $request->validate(['file_hasil_akhir' => 'required|file|mimes:pdf|max:2048']);
         $permohonan = PermohonanKKHilang::with('masyarakat')->findOrFail($id);
 
-     
-
         if ($request->hasFile('file_hasil_akhir')) {
-             if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
-                 Storage::disk('public')->delete($permohonan->file_hasil_akhir);
-                 }
- 
+            if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
+                Storage::disk('public')->delete($permohonan->file_hasil_akhir);
+            }
 
-             $file = $request->file('file_hasil_akhir');
-            $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap); // Mengubah nama menjadi format URL-friendly
-             $idPermohonan = $permohonan->id;
-             $ekstensi = $file->getClientOriginalExtension(); // Mengambil ekstensi asli (e.g., "pdf")
+            $file = $request->file('file_hasil_akhir');
+            $namaPemohonSlug = Str::slug($permohonan->masyarakat->nama_lengkap);
+            $idPermohonan = $permohonan->id;
+            $ekstensi = $file->getClientOriginalExtension();
 
-             $namaFileKustom = "Kartu Keluarga - _{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
- 
+            $namaFileKustom = "Kartu Keluarga - _{$namaPemohonSlug}_{$idPermohonan}.{$ekstensi}";
 
             $path = $file->storeAs('permohonan_kk_hilang/hasil_akhir', $namaFileKustom, 'public');
- 
 
-             $permohonan->file_hasil_akhir = $path;
-             }
+            $permohonan->file_hasil_akhir = $path;
+        }
 
         $permohonan->status = 'selesai';
         $permohonan->tanggal_selesai_proses = Carbon::now();
         $permohonan->save();
+        Log::info('[DEBUG Notif] Permohonan status diperbarui menjadi selesai.');
 
-        $title = "Permohonan Selesai";
-        $message = "Selamat! Permohonan KK Hilang Anda (#{$permohonan->id}) telah selesai diproses.";
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan, $title, $message, '#'));
+        // Dapatkan objek masyarakat yang terkait
+        $masyarakat = $permohonan->masyarakat;
+
+        if ($masyarakat) {
+            Log::info('[DEBUG Notif] Masyarakat ditemukan untuk penyelesaian: ' . $masyarakat->id);
+            if (empty($masyarakat->fcm_token)) {
+                Log::warning('[DEBUG Notif] Masyarakat ID: ' . $masyarakat->id . ' tidak memiliki FCM token untuk penyelesaian.');
+            }
+
+            try {
+                // Panggil notifikasi hanya dengan objek $permohonan
+                $masyarakat->notify(new StatusPermohonanDiperbarui($permohonan));
+                Log::info('[DEBUG Notif] Notifikasi StatusPermohonanDiperbarui berhasil dipanggil untuk penyelesaian.');
+            } catch (\Exception $e) {
+                Log::error('[DEBUG Notif] Gagal mengirim notifikasi penyelesaian: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
+            }
+        } else {
+            Log::warning('[DEBUG Notif] Masyarakat tidak ditemukan untuk permohonan ID: ' . $id . ' saat penyelesaian.');
+        }
 
         return redirect()->route('petugas.permohonan-kk-hilang.show', $id)->with('success', 'Proses permohonan berhasil diselesaikan.');
     }
 
     public function downloadFinal($id)
     {
-        
         $permohonan = PermohonanKKHilang::where('status', 'selesai')->findOrFail($id);
 
         if ($permohonan->file_hasil_akhir && Storage::disk('public')->exists($permohonan->file_hasil_akhir)) {
             return Storage::disk('public')->download($permohonan->file_hasil_akhir);
         }
 
-        // Redirect ini sudah benar jika file tidak ada
         return redirect()->back()->with('error', 'File hasil akhir tidak ditemukan atau permohonan belum selesai.');
-
     }
 }

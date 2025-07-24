@@ -61,7 +61,8 @@ class NotificationController extends Controller
             'SK Domisili',
             'SK Perkawinan',
             'SK Tidak Mampu',
-            'SK Usaha'
+            'SK Usaha',
+            'SK Lainnya (Khusus)'
         ];
 
         // Ambil semua notifikasi user yang sedang login, bisa ditambahkan filter jika diperlukan

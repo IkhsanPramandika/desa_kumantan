@@ -24,7 +24,10 @@ class StoreKKHilangRequest extends FormRequest
             'catatan_pemohon' => 'nullable|string',
         ];
     }
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
 
+/*******  3306db6b-9da0-4e47-a10e-8744deb4f0b7  *******/
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([

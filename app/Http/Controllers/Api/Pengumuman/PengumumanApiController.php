@@ -9,9 +9,7 @@ use App\Models\Pengumuman;
 use App\Notifications\PengumumanBaru;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
-
-// PERBAIKAN 1: Import StorePengumumanRequest untuk validasi
-use App\Http\Requests\Api\Pengumuman\StorePengumumanRequest;
+use App\Http\Requests\Api\Pengumuman\StorePengumumanRequest; // [cite: 2]
 
 class PengumumanApiController extends Controller
 {
@@ -20,13 +18,12 @@ class PengumumanApiController extends Controller
      */
     public function index()
     {
-       
+        // Kode ini sudah sangat baik dan efisien.
         $pengumuman = Pengumuman::with('user')
                                 ->dipublikasikan()
                                 ->latest('tanggal_publikasi')
-                                ->paginate(10); 
-
-        return PengumumanResource::collection($pengumuman);
+                                ->paginate(10); // [cite: 3, 4]
+        return PengumumanResource::collection($pengumuman); // [cite: 5]
     }
 
     /**
@@ -38,34 +35,31 @@ class PengumumanApiController extends Controller
         $pengumuman = Pengumuman::with('user')
                                 ->dipublikasikan()
                                 ->where('slug', $slug)
-                                ->firstOrFail();
-
-        return new PengumumanResource($pengumuman);
+                                ->firstOrFail(); // [cite: 7]
+        return new PengumumanResource($pengumuman); // [cite: 8]
     }
 
     /**
-     * Method untuk membuat pengumuman baru (biasanya oleh admin/petugas).
+     * Method untuk membuat pengumuman baru.
      */
-    // PERBAIKAN 3: Gunakan FormRequest untuk validasi yang bersih
     public function store(StorePengumumanRequest $request)
     {
         $validatedData = $request->validated();
-        $validatedData['user_id'] = auth()->id(); 
-        
+        $validatedData['user_id'] = auth()->id(); // [cite: 10]
+
         $pengumuman = Pengumuman::create($validatedData);
 
-        // <<< PERBAIKAN: Gunakan Queue untuk pengiriman notifikasi >>>
-        // Ini akan mengirim notifikasi di latar belakang tanpa membuat API menunggu.
-        $semuaWargaAktif = Masyarakat::where('status_akun', 'active')->get();
+        // SOLUSI: Pastikan Notifikasi `PengumumanBaru` mengimplementasikan `ShouldQueue`.
+        // Dengan begitu, baris kode di bawah ini akan bekerja secara asinkron (background job).
+        // Ini memastikan respons API tetap cepat.
+        $semuaWargaAktif = Masyarakat::where('status_akun', 'active')->get(); // 
         if ($semuaWargaAktif->isNotEmpty()) {
-            // Gunakan `Notification::sendLater` atau pastikan Notifikasi Anda mengimplementasikan `ShouldQueue`
-            Notification::send($semuaWargaAktif, new PengumumanBaru($pengumuman));
+            Notification::send($semuaWargaAktif, new PengumumanBaru($pengumuman)); // 
         }
 
         return (new PengumumanResource($pengumuman))
-                ->additional(['message' => 'Pengumuman berhasil dibuat dan notifikasi sedang dikirim.'])
+                ->additional(['message' => 'Pengumuman berhasil dibuat. Notifikasi akan segera dikirim ke warga.'])
                 ->response()
                 ->setStatusCode(201);
     }
 }
-

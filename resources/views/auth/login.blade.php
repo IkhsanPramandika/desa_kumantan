@@ -8,14 +8,11 @@
 
     <title>Sistem Informasi Layanan Desa Kumantan - Login Petugas</title>
 
-    <!-- Fonts and Icons -->
     <link href="{{ asset('sbadmin/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
-    <!-- Core Stylesheet -->
     <link href="{{ asset('sbadmin/css/sb-admin-2.min.css') }}" rel="stylesheet">
 
-    {{-- [PERBAIKAN] Menambahkan style kustom untuk tampilan yang lebih baik --}}
     <style>
         .login-branding-panel {
             background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
@@ -54,9 +51,6 @@
         .form-control-icon-input {
             padding-left: 2.75rem !important;
         }
-        .small a {
-            transition: color 0.2s ease-in-out;
-        }
     </style>
 </head>
 
@@ -68,7 +62,6 @@
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
                         <div class="row">
-                            {{-- [UI/UX IMPROVEMENT] Panel branding di sebelah kiri --}}
                             <div class="col-lg-6 d-none d-lg-block login-branding-panel">
                                 <img src="{{ asset('sbadmin/img/logo_kampar.png') }}" alt="Logo Kabupaten Kampar">
                                 <h2>Layanan Desa Kumantan</h2>
@@ -91,7 +84,6 @@
                                     <form method="POST" action="{{ route('login') }}" class="user">
                                         @csrf
 
-                                        {{-- [UI/UX IMPROVEMENT] Input dengan ikon --}}
                                         <div class="form-group form-group-icon">
                                             <i class="fas fa-envelope form-control-icon"></i>
                                             <input type="email" class="form-control form-control-user form-control-icon-input @error('email') is-invalid @enderror"
@@ -102,12 +94,22 @@
                                             @enderror
                                         </div>
 
-                                        <div class="form-group form-group-icon">
-                                            <i class="fas fa-lock form-control-icon"></i>
-                                            <input type="password" class="form-control form-control-user form-control-icon-input @error('password') is-invalid @enderror"
-                                                id="password" name="password" required placeholder="Password">
-                                            @error('password')
-                                                <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                        {{-- [PERUBAHAN DI SINI] Input Password sekarang menggunakan input-group --}}
+                                        <div class="form-group">
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text" style="padding-left: 1rem; padding-right: 1rem; background: #f8f9fc; border-right: none;"><i class="fas fa-lock text-gray-500"></i></span>
+                                                </div>
+                                                <input type="password" class="form-control form-control-user @error('password') is-invalid @enderror" style="border-left: none; padding-left: 0.5rem;"
+                                                    id="password" name="password" required placeholder="Password">
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary toggle-password" type="button" style="border-left: none; border-top-right-radius: 0.35rem; border-bottom-right-radius: 0.35rem;">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                             @error('password')
+                                                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
                                             @enderror
                                         </div>
 
@@ -141,6 +143,23 @@
     <script src="{{ asset('sbadmin/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('sbadmin/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('sbadmin/js/sb-admin-2.min.js') }}"></script>
+
+    <script>
+    $(document).ready(function() {
+        $(".toggle-password").click(function() {
+            var icon = $(this).find('i');
+            var input = $(this).closest('.input-group').find('input[type="password"], input[type="text"]'); // Target both types
+
+            if (input.attr("type") == "password") {
+                input.attr("type", "text");
+                icon.removeClass("fa-eye").addClass("fa-eye-slash");
+            } else {
+                input.attr("type", "password");
+                icon.removeClass("fa-eye-slash").addClass("fa-eye");
+            }
+        });
+    });
+    </script>
 
 </body>
 </html>
