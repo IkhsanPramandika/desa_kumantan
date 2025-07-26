@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log; // [PERBAIKAN] Tambahkan Log untuk debugging
 
 class PermohonanLainnyaController extends Controller
 {
@@ -27,7 +28,6 @@ class PermohonanLainnyaController extends Controller
             $query->where('status', $request->status);
         }
         
-        // [FITUR BARU] Menambahkan fitur jumlah data per halaman
         $perPage = $request->input('per_page', 10);
         $data = $query->paginate($perPage)->withQueryString();
 
@@ -40,23 +40,15 @@ class PermohonanLainnyaController extends Controller
         return view('petugas.pengajuan.permohonan_lainnya.show', compact('permohonan'));
     }
 
-    /**
-     * [PERBAIKAN] Fungsi tolak diubah untuk alur revisi.
-     */
     public function tolak(Request $request, $id)
     {
         $request->validate(['catatan_penolakan' => 'required|string|max:1000']);
         
         $permohonan = PermohonanLainnya::with('masyarakat')->findOrFail($id);
-
-        // Mengubah status menjadi 'membutuhkan_revisi'
         $permohonan->status = 'membutuhkan_revisi';
-        
-        // Menyimpan catatan penolakan dari petugas
         $permohonan->catatan_penolakan = $request->input('catatan_penolakan');
         $permohonan->save();
 
-        // Mengirim notifikasi ke pengguna bahwa permohonan perlu direvisi
         Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
         
         return redirect()->route('petugas.permohonan-lainnya.show', $id)
@@ -67,8 +59,7 @@ class PermohonanLainnyaController extends Controller
     public function createSurat($id)
     {
         $permohonan = PermohonanLainnya::findOrFail($id);
-        // [PERBAIKAN] Izinkan membuat surat jika statusnya pending atau sudah direvisi
-        if (!in_array($permohonan->status, ['pending', 'membutuhkan_revisi'])) {
+        if (!in_array($permohonan->status, ['pending', 'membutuhkan_revisi', 'diterima'])) {
              return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('error', 'Surat tidak dapat dibuat untuk permohonan dengan status ini.');
         }
         return view('petugas.pengajuan.permohonan_lainnya.create_surat', compact('permohonan'));
@@ -77,29 +68,42 @@ class PermohonanLainnyaController extends Controller
     public function generateSurat(Request $request, $id)
     {
         $request->validate([
-            'nomor_surat' => 'required|string|max:255',
             'judul_surat_final' => 'required|string|max:255',
             'konten_final_html' => 'required|string',
         ]);
         
         $permohonan = PermohonanLainnya::with('masyarakat')->findOrFail($id);
         
-        $permohonan->nomor_surat = $request->nomor_surat;
-        $permohonan->judul_surat_final = $request->judul_surat_final;
-        $permohonan->konten_final_html = $request->konten_final_html;
-        
-        $pdf = Pdf::loadView('documents.surat_lainnya', ['permohonan' => $permohonan]);
-        $fileName = 'Surat_Keterangan_' . Str::slug($permohonan->judul_surat_final) . '_' . $permohonan->id . '.pdf';
-        $path = 'permohonan_lainnya/hasil_akhir/' . $fileName;
-        Storage::disk('public')->put($path, $pdf->output());
+        // [PERBAIKAN] Membungkus semua logika pembuatan PDF dalam blok try-catch
+        try {
+            // Generate nomor surat otomatis
+            $permohonan->generateNomorSurat('474'); 
+            
+            // Simpan data dari form
+            $permohonan->judul_surat_final = $request->judul_surat_final;
+            $permohonan->konten_final_html = $request->konten_final_html;
+            
+            // Generate PDF
+            $pdf = Pdf::loadView('documents.surat_lainnya', ['permohonan' => $permohonan]);
+            $fileName = 'Surat_Keterangan_' . Str::slug($permohonan->judul_surat_final) . '_' . $permohonan->id . '.pdf';
+            $path = 'permohonan_lainnya/hasil_akhir/' . $fileName;
+            Storage::disk('public')->put($path, $pdf->output());
 
-        $permohonan->file_hasil_akhir = $path;
-        $permohonan->status = 'selesai';
-        $permohonan->tanggal_selesai_proses = Carbon::now();
-        $permohonan->save();
+            // Update status dan data permohonan
+            $permohonan->file_hasil_akhir = $path;
+            $permohonan->status = 'selesai';
+            $permohonan->tanggal_selesai_proses = Carbon::now();
+            $permohonan->save();
 
-        Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
-        return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('success', 'Surat berhasil dibuat dan permohonan diselesaikan.');
+            // Kirim notifikasi dan redirect
+            Notification::send($permohonan->masyarakat, new StatusPermohonanDiperbarui($permohonan));
+            return redirect()->route('petugas.permohonan-lainnya.show', $id)->with('success', 'Surat berhasil dibuat dan permohonan diselesaikan.');
+
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Jika terjadi error, catat di log dan kembalikan dengan pesan error yang jelas
+            Log::error("Gagal membuat PDF Permohonan Lainnya untuk ID {$id}: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat dokumen. Terjadi kesalahan: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function downloadFinal($id)

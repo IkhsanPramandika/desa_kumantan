@@ -17,19 +17,19 @@ class MasyarakatAuthController extends Controller
 {
     /**
      * Registrasi pengguna masyarakat baru.
-     * Email akan menjadi penting jika reset password menggunakan email.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function register(Request $request): JsonResponse
     {
-       Log::info('[MasyarakatAuthController - Register] Menerima request registrasi baru.');
+        Log::info('[MasyarakatAuthController - Register] Menerima request registrasi baru.');
         $validator = Validator::make($request->all(), [
             'nik' => 'required|string|digits:16|unique:masyarakat,nik',
             'nama_lengkap' => 'required|string|max:255',
             'nomor_hp' => 'required|string|max:20|unique:masyarakat,nomor_hp',
-            'email' => 'required|string|email|max:255|unique:masyarakat,email',
+            // [PERBAIKAN] Mengubah 'required' menjadi 'nullable' agar email menjadi opsional
+            'email' => 'nullable|string|email|max:255|unique:masyarakat,email',
             'password' => ['required', 'confirmed', PasswordRules::min(8)->mixedCase()->numbers()->symbols()],
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
@@ -38,7 +38,6 @@ class MasyarakatAuthController extends Controller
             'rt' => 'nullable|string|max:5',
             'rw' => 'nullable|string|max:5',
             'dusun_atau_lingkungan' => 'nullable|string|max:100',
-            // [PERBAIKAN] Menyamakan dengan nilai enum di database
             'agama' => 'nullable|string|in:Islam,Kristen Protestan,Katolik,Hindu,Buddha,Konghucu',
             'status_perkawinan' => 'nullable|string|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati',
             'pekerjaan' => 'nullable|string|max:100',
@@ -52,13 +51,10 @@ class MasyarakatAuthController extends Controller
 
         try {
             $dataToCreate = $validator->validated();
-            // Password akan di-hash otomatis oleh mutator di Model Masyarakat jika $casts['password'] = 'hashed'
-            // Jika tidak, hash manual: $dataToCreate['password'] = Hash::make($request->password);
             
-            $dataToCreate['status_akun'] = 'pending_verification'; // Atau 'active' jika tidak ada verifikasi
+            $dataToCreate['status_akun'] = 'pending_verification';
 
             if ($request->hasFile('foto_ktp')) {
-                // Simpan ke disk 'public', path relatif akan disimpan di DB
                 $pathFotoKtp = $request->file('foto_ktp')->store('masyarakat/foto_ktp', 'public');
                 $dataToCreate['foto_ktp'] = $pathFotoKtp;
             }
@@ -66,11 +62,9 @@ class MasyarakatAuthController extends Controller
             $masyarakat = Masyarakat::create($dataToCreate);
             Log::info('[MasyarakatAuthController - Register] Masyarakat baru berhasil dibuat dengan NIK: ' . $masyarakat->nik);
 
-            // Opsional: Kirim notifikasi ke admin/petugas bahwa ada pendaftaran baru
-
             return response()->json([
                 'message' => 'Registrasi berhasil. Akun Anda akan segera diverifikasi oleh petugas desa.',
-                'data' => $masyarakat // Opsional: mengembalikan data user yang baru dibuat
+                'data' => $masyarakat
             ], 201);
 
         } catch (\Exception $e) {
@@ -91,7 +85,7 @@ class MasyarakatAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'nik' => 'required|string|digits:16',
             'password' => 'required|string',
-            'device_name' => 'nullable|string|max:255', // Opsional: nama perangkat untuk token
+            'device_name' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -131,14 +125,12 @@ class MasyarakatAuthController extends Controller
                 'nomor_hp' => $masyarakat->nomor_hp,
                 'email' => $masyarakat->email,
                 'status_akun' => $masyarakat->status_akun,
-                // Tambahkan data profil lain yang ingin dikirim ke aplikasi mobile
             ]
         ]);
     }
 
     /**
      * Logout pengguna masyarakat (menghapus token saat ini).
-     * Membutuhkan middleware 'auth:sanctum' pada rute.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -157,21 +149,18 @@ class MasyarakatAuthController extends Controller
 
     /**
      * Mendapatkan data profil pengguna masyarakat yang sedang login.
-     * Membutuhkan middleware 'auth:sanctum' pada rute.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function profil(Request $request): JsonResponse
     {
-        // $request->user() akan mengembalikan instance model Masyarakat yang terautentikasi
         Log::info('[MasyarakatAuthController - Profil] Mengambil profil untuk user ID: ' . $request->user()->id);
         return response()->json($request->user());
     }
 
     /**
      * Memperbarui data profil pengguna masyarakat yang sedang login.
-     * Membutuhkan middleware 'auth:sanctum' pada rute.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -179,14 +168,13 @@ class MasyarakatAuthController extends Controller
     public function updateProfil(Request $request): JsonResponse
     {
         $masyarakat = $request->user();
-    Log::info('[MasyarakatAuthController - UpdateProfil] Memulai update profil untuk user ID: ' . $masyarakat->id);
-    Log::info('[MasyarakatAuthController - UpdateProfil] Raw Request Input:', $request->all()); // <-- TAMBAHKAN BARIS INI
-    Log::info('[MasyarakatAuthController - UpdateProfil] Data user dari DB sebelum update:', $masyarakat->toArray()); 
-    
-         $validator = Validator::make($request->all(), [
+        Log::info('[MasyarakatAuthController - UpdateProfil] Memulai update profil untuk user ID: ' . $masyarakat->id);
+        
+        $validator = Validator::make($request->all(), [
             'nama_lengkap' => 'sometimes|required|string|max:255',
             'nomor_hp' => 'sometimes|required|string|max:20|unique:masyarakat,nomor_hp,' . $masyarakat->id,
-            'email' => 'sometimes|required|string|email|max:255|unique:masyarakat,email,' . $masyarakat->id,
+            // [PERBAIKAN] Mengubah 'required' menjadi 'nullable' agar konsisten
+            'email' => 'sometimes|nullable|string|email|max:255|unique:masyarakat,email,' . $masyarakat->id,
             'tempat_lahir' => 'sometimes|nullable|string|max:100',
             'tanggal_lahir' => 'sometimes|nullable|date',
             'jenis_kelamin' => 'sometimes|nullable|string|in:Laki-laki,Perempuan',
@@ -194,7 +182,6 @@ class MasyarakatAuthController extends Controller
             'rt' => 'sometimes|nullable|string|max:5',
             'rw' => 'sometimes|nullable|string|max:5',
             'dusun_atau_lingkungan' => 'sometimes|nullable|string|max:100',
-            // [PERBAIKAN] Menyamakan dengan nilai enum di database
             'agama' => 'sometimes|nullable|string|in:Islam,Kristen Protestan,Katolik,Hindu,Buddha,Konghucu',
             'status_perkawinan' => 'sometimes|nullable|string|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati',
             'pekerjaan' => 'sometimes|nullable|string|max:100',
@@ -208,31 +195,22 @@ class MasyarakatAuthController extends Controller
 
         try {
             $updateData = $validator->validated();
-            Log::info('[MasyarakatAuthController - UpdateProfil] Data yang akan di-update (setelah validasi):', $updateData); // LOG INI PENTING
-
-            // Hapus foto KTP lama jika ada dan file baru diunggah
+            
             if ($request->hasFile('foto_ktp')) {
                 if ($masyarakat->foto_ktp && Storage::disk('public')->exists($masyarakat->foto_ktp)) {
                     Storage::disk('public')->delete($masyarakat->foto_ktp);
-                    Log::info('[MasyarakatAuthController - UpdateProfil] Foto KTP lama dihapus: ' . $masyarakat->foto_ktp);
                 }
                 $pathFotoKtp = $request->file('foto_ktp')->store('masyarakat/foto_ktp', 'public');
                 $updateData['foto_ktp'] = $pathFotoKtp;
-                Log::info('[MasyarakatAuthController - UpdateProfil] Foto KTP baru disimpan ke: ' . $pathFotoKtp);
             }
 
-            // Lakukan update dan tangkap hasilnya
-            $isUpdated = $masyarakat->update($updateData);
-            Log::info('[MasyarakatAuthController - UpdateProfil] Hasil metode update(): ' . ($isUpdated ? 'TRUE' : 'FALSE')); // LOG INI SANGAT PENTING
-
-            // Ambil data terbaru dari database setelah update
-            // Gunakan fresh() untuk memastikan data terbaru dari DB
+            $masyarakat->update($updateData);
+            
             $updatedMasyarakat = $masyarakat->fresh();
-            Log::info('[MasyarakatAuthController - UpdateProfil] Data user dari DB setelah update (via fresh()):', $updatedMasyarakat->toArray());
 
             return response()->json([
                 'message' => 'Profil berhasil diperbarui.',
-                'user' => $updatedMasyarakat // Pastikan ini adalah objek yang fresh
+                'user' => $updatedMasyarakat
             ]);
 
         } catch (\Exception $e) {
@@ -240,7 +218,8 @@ class MasyarakatAuthController extends Controller
             return response()->json(['message' => 'Terjadi kesalahan pada server saat memperbarui profil.'], 500);
         }
     }
-        public function changePassword(Request $request): JsonResponse
+    
+    public function changePassword(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -253,12 +232,10 @@ class MasyarakatAuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Periksa apakah password saat ini cocok
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Password saat ini tidak cocok.'], 401);
         }
 
-        // Update password dengan yang baru
         $user->password = Hash::make($request->new_password);
         $user->save();
 

@@ -12,7 +12,7 @@
 </div>
 
 <div class="row">
-    {{-- [PERBAIKAN] KOLOM KIRI: MENAMPILKAN SEMUA INFORMASI DARI PEMOHON --}}
+    {{-- KOLOM KIRI: MENAMPILKAN SEMUA INFORMASI DARI PEMOHON --}}
     <div class="col-lg-5">
         {{-- Card Detail Permintaan --}}
         <div class="card shadow mb-4">
@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        {{-- [FITUR BARU] Card untuk menampilkan lampiran --}}
+        {{-- Card untuk menampilkan lampiran --}}
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Dokumen Lampiran</h6>
@@ -66,27 +66,40 @@
         </div>
     </div>
 
-    {{-- [PERBAIKAN] KOLOM KANAN: FORM PEMBUATAN SURAT --}}
+    {{-- KOLOM KANAN: FORM PEMBUATAN SURAT --}}
     <div class="col-lg-7">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Form Pembuatan Surat</h6>
             </div>
             <div class="card-body">
-                <form action="{{ route('petugas.permohonan-lainnya.generate-surat', $permohonan->id) }}" method="POST">
+                {{-- Pastikan route action sesuai dengan file web.php Anda --}}
+                <form action="{{ route('petugas.permohonan-lainnya.generate-surat', $permohonan->id) }}" method="POST" id="form-generate-surat">
                     @csrf
+                    
                     <div class="form-group">
-                        <label for="nomor_surat" class="font-weight-bold">Nomor Surat</label>
-                        <input type="text" class="form-control" id="nomor_surat" name="nomor_surat" required placeholder="Contoh: 470/123/PEM-2025">
+                        <label class="font-weight-bold">Nomor Surat</label>
+                        <div class="alert alert-info" role="alert">
+                            Nomor surat akan dibuat secara otomatis oleh sistem.
+                        </div>
                     </div>
+                    
                     <div class="form-group">
                         <label for="judul_surat_final" class="font-weight-bold">Judul Dokumen (Akan tampil di bawah KOP)</label>
-                        <input type="text" class="form-control" id="judul_surat_final" name="judul_surat_final" value="{{ strtoupper($permohonan->judul_permohonan) }}" required>
+                        <input type="text" class="form-control @error('judul_surat_final') is-invalid @enderror" id="judul_surat_final" name="judul_surat_final" value="{{ old('judul_surat_final', 'SURAT KETERANGAN ' . strtoupper($permohonan->judul_permohonan)) }}" required>
+                        @error('judul_surat_final')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
+                    
                     <div class="form-group">
                         <label for="konten_final_html" class="font-weight-bold">Isi Surat</label>
-                        <textarea class="form-control" id="wysiwyg" name="konten_final_html" rows="20"></textarea>
+                        <textarea class="form-control @error('konten_final_html') is-invalid @enderror" id="wysiwyg" name="konten_final_html" rows="20">{{ old('konten_final_html', '<p>Dengan ini menerangkan bahwa nama yang tersebut di atas adalah benar penduduk Desa Kumantan.</p><p>Surat keterangan ini dibuat sebagai pemenuhan atas permintaan yang bersangkutan untuk keperluan: <strong>' . e($permohonan->keperluan) . '</strong>.</p>') }}</textarea>
+                        @error('konten_final_html')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                     </div>
+                    
                     <button type="submit" class="btn btn-primary btn-icon-split">
                         <span class="icon text-white-50"><i class="fas fa-check"></i></span>
                         <span class="text">Generate Surat & Selesaikan</span>
@@ -102,12 +115,29 @@
 {{-- PENTING: Tambahkan Rich Text Editor seperti TinyMCE --}}
 <script src="https://cdn.tiny.cloud/1/3fi9aqma9lmgcqhmpbu9mmo34onbhectbfhqiavjvor03d7o/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
-    tinymce.init({
-        selector: 'textarea#wysiwyg',
-        plugins: 'table lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media',
-        toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link',
-        height: 500,
-        menubar: false,
+    document.addEventListener('DOMContentLoaded', function () {
+        tinymce.init({
+            selector: 'textarea#wysiwyg',
+            plugins: 'table lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media',
+            toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link',
+            height: 500,
+            menubar: false,
+            // [PERBAIKAN] Menambahkan setup untuk memastikan konten tersimpan
+            setup: function (editor) {
+                editor.on('change', function () {
+                    tinymce.triggerSave();
+                });
+            }
+        });
+
+        // Menambahkan listener ke form untuk memastikan data tersimpan sebelum submit
+        const form = document.getElementById('form-generate-surat');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Perintahkan TinyMCE untuk menyimpan kontennya ke textarea asli
+                tinymce.triggerSave();
+            });
+        }
     });
 </script>
 @endpush

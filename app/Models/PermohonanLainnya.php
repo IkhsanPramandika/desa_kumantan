@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\HasNomorSurat;
 
 class PermohonanLainnya extends Model
 {
-    use HasFactory;
+    use HasFactory,HasNomorSurat;
 
     protected $fillable = [
         'masyarakat_id',

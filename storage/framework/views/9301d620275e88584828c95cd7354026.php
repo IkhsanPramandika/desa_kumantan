@@ -75,20 +75,61 @@
                 <h6 class="m-0 font-weight-bold text-primary">Form Pembuatan Surat</h6>
             </div>
             <div class="card-body">
-                <form action="<?php echo e(route('petugas.permohonan-lainnya.generate-surat', $permohonan->id)); ?>" method="POST">
+                
+                <form action="<?php echo e(route('petugas.permohonan-lainnya.generate-surat', $permohonan->id)); ?>" method="POST" id="form-generate-surat">
                     <?php echo csrf_field(); ?>
+                    
                     <div class="form-group">
-                        <label for="nomor_surat" class="font-weight-bold">Nomor Surat</label>
-                        <input type="text" class="form-control" id="nomor_surat" name="nomor_surat" required placeholder="Contoh: 470/123/PEM-2025">
+                        <label class="font-weight-bold">Nomor Surat</label>
+                        <div class="alert alert-info" role="alert">
+                            Nomor surat akan dibuat secara otomatis oleh sistem.
+                        </div>
                     </div>
+                    
                     <div class="form-group">
                         <label for="judul_surat_final" class="font-weight-bold">Judul Dokumen (Akan tampil di bawah KOP)</label>
-                        <input type="text" class="form-control" id="judul_surat_final" name="judul_surat_final" value="<?php echo e(strtoupper($permohonan->judul_permohonan)); ?>" required>
+                        <input type="text" class="form-control <?php $__errorArgs = ['judul_surat_final'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="judul_surat_final" name="judul_surat_final" value="<?php echo e(old('judul_surat_final', 'SURAT KETERANGAN ' . strtoupper($permohonan->judul_permohonan))); ?>" required>
+                        <?php $__errorArgs = ['judul_surat_final'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                     </div>
+                    
                     <div class="form-group">
                         <label for="konten_final_html" class="font-weight-bold">Isi Surat</label>
-                        <textarea class="form-control" id="wysiwyg" name="konten_final_html" rows="20"></textarea>
+                        <textarea class="form-control <?php $__errorArgs = ['konten_final_html'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="wysiwyg" name="konten_final_html" rows="20"><?php echo e(old('konten_final_html', '<p>Dengan ini menerangkan bahwa nama yang tersebut di atas adalah benar penduduk Desa Kumantan.</p><p>Surat keterangan ini dibuat sebagai pemenuhan atas permintaan yang bersangkutan untuk keperluan: <strong>' . e($permohonan->keperluan) . '</strong>.</p>')); ?></textarea>
+                        <?php $__errorArgs = ['konten_final_html'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback d-block"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                     </div>
+                    
                     <button type="submit" class="btn btn-primary btn-icon-split">
                         <span class="icon text-white-50"><i class="fas fa-check"></i></span>
                         <span class="text">Generate Surat & Selesaikan</span>
@@ -104,12 +145,29 @@
 
 <script src="https://cdn.tiny.cloud/1/3fi9aqma9lmgcqhmpbu9mmo34onbhectbfhqiavjvor03d7o/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
-    tinymce.init({
-        selector: 'textarea#wysiwyg',
-        plugins: 'table lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media',
-        toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link',
-        height: 500,
-        menubar: false,
+    document.addEventListener('DOMContentLoaded', function () {
+        tinymce.init({
+            selector: 'textarea#wysiwyg',
+            plugins: 'table lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media',
+            toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link',
+            height: 500,
+            menubar: false,
+            // [PERBAIKAN] Menambahkan setup untuk memastikan konten tersimpan
+            setup: function (editor) {
+                editor.on('change', function () {
+                    tinymce.triggerSave();
+                });
+            }
+        });
+
+        // Menambahkan listener ke form untuk memastikan data tersimpan sebelum submit
+        const form = document.getElementById('form-generate-surat');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Perintahkan TinyMCE untuk menyimpan kontennya ke textarea asli
+                tinymce.triggerSave();
+            });
+        }
     });
 </script>
 <?php $__env->stopPush(); ?>
