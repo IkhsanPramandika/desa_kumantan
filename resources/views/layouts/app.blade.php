@@ -23,6 +23,7 @@
 <body id="page-top" class="sb-nav-fixed">
     <div id="wrapper">
         @include('layouts.sidebar')
+      
 
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
